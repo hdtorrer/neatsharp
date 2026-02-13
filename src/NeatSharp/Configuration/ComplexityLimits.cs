@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace NeatSharp.Configuration;
 
 /// <summary>
@@ -11,13 +9,11 @@ public class ComplexityLimits
     /// Maximum number of nodes allowed in a genome's network.
     /// Must be greater than 0 if set. <c>null</c> means unbounded.
     /// </summary>
-    [Range(1, int.MaxValue)]
     public int? MaxNodes { get; set; }
 
     /// <summary>
     /// Maximum number of connections allowed in a genome's network.
     /// Must be greater than 0 if set. <c>null</c> means unbounded.
     /// </summary>
-    [Range(1, int.MaxValue)]
     public int? MaxConnections { get; set; }
 }

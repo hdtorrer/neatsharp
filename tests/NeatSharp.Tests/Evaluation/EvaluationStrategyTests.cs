@@ -2,6 +2,7 @@ using FluentAssertions;
 using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
 using NeatSharp.Genetics;
+using NeatSharp.Tests.TestDoubles;
 using Xunit;
 
 namespace NeatSharp.Tests.Evaluation;
@@ -222,6 +223,20 @@ public class EvaluationStrategyTests
     // --- T033: NeatEvolverExtensions overload tests ---
 
     [Fact]
+    public async Task RunAsync_SyncFunction_DelegatesToEvolver()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+
+        await evolver.RunAsync(
+            g => 1.0,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy.Should().BeAssignableTo<IEvaluationStrategy>();
+    }
+
+    [Fact]
     public async Task RunAsync_AsyncFunction_DelegatesToEvolver()
     {
         var capturedStrategy = default(IEvaluationStrategy);
@@ -264,17 +279,6 @@ public class EvaluationStrategyTests
     }
 
     // --- Test doubles ---
-
-    private sealed class StubGenome(int nodeCount, int connectionCount) : IGenome
-    {
-        public int NodeCount => nodeCount;
-        public int ConnectionCount => connectionCount;
-
-        public void Activate(ReadOnlySpan<double> inputs, Span<double> outputs)
-        {
-            // Stub: no-op
-        }
-    }
 
     private sealed class StubEnvironmentEvaluator : IEnvironmentEvaluator
     {

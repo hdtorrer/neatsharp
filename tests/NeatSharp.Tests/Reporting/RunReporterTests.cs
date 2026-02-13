@@ -1,7 +1,7 @@
 using FluentAssertions;
 using NeatSharp.Evolution;
-using NeatSharp.Genetics;
 using NeatSharp.Reporting;
+using NeatSharp.Tests.TestDoubles;
 using Xunit;
 
 namespace NeatSharp.Tests.Reporting;
@@ -125,14 +125,4 @@ public class RunReporterTests
         return new EvolutionResult(champion, population, history, seed, wasCancelled);
     }
 
-    private sealed class StubGenome(int nodeCount, int connectionCount) : IGenome
-    {
-        public int NodeCount => nodeCount;
-        public int ConnectionCount => connectionCount;
-
-        public void Activate(ReadOnlySpan<double> inputs, Span<double> outputs)
-        {
-            // Stub: no-op
-        }
-    }
 }

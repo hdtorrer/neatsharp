@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace NeatSharp.Configuration;
 
 /// <summary>
@@ -11,7 +9,6 @@ public class StoppingCriteria
     /// Maximum number of generations to run. Must be greater than 0 if set.
     /// <c>null</c> means no generation limit.
     /// </summary>
-    [Range(1, int.MaxValue)]
     public int? MaxGenerations { get; set; }
 
     /// <summary>
@@ -24,6 +21,5 @@ public class StoppingCriteria
     /// Number of generations without improvement before stopping.
     /// Must be greater than 0 if set. <c>null</c> means no stagnation detection.
     /// </summary>
-    [Range(1, int.MaxValue)]
     public int? StagnationThreshold { get; set; }
 }

@@ -48,46 +48,46 @@ public static class ServiceCollectionExtensions
     {
         public ValidateOptionsResult Validate(string? name, NeatSharpOptions options)
         {
-            var failures = new List<string>();
+            List<string>? failures = null;
 
             // Cross-field: at least one stopping criterion required
             if (options.Stopping.MaxGenerations is null
                 && options.Stopping.FitnessTarget is null
                 && options.Stopping.StagnationThreshold is null)
             {
-                failures.Add(
+                (failures ??= []).Add(
                     "At least one stopping criterion is required (MaxGenerations, FitnessTarget, or StagnationThreshold).");
             }
 
             if (options.Stopping.FitnessTarget.HasValue
                 && !double.IsFinite(options.Stopping.FitnessTarget.Value))
             {
-                failures.Add("StoppingCriteria.FitnessTarget must be a finite value.");
+                (failures ??= []).Add("StoppingCriteria.FitnessTarget must be a finite value.");
             }
 
             // Nested StoppingCriteria field validation
             if (options.Stopping.MaxGenerations.HasValue && options.Stopping.MaxGenerations.Value < 1)
             {
-                failures.Add("StoppingCriteria.MaxGenerations must be greater than or equal to 1.");
+                (failures ??= []).Add("StoppingCriteria.MaxGenerations must be greater than or equal to 1.");
             }
 
             if (options.Stopping.StagnationThreshold.HasValue && options.Stopping.StagnationThreshold.Value < 1)
             {
-                failures.Add("StoppingCriteria.StagnationThreshold must be greater than or equal to 1.");
+                (failures ??= []).Add("StoppingCriteria.StagnationThreshold must be greater than or equal to 1.");
             }
 
             // Nested ComplexityLimits field validation
             if (options.Complexity.MaxNodes.HasValue && options.Complexity.MaxNodes.Value < 1)
             {
-                failures.Add("ComplexityLimits.MaxNodes must be greater than or equal to 1.");
+                (failures ??= []).Add("ComplexityLimits.MaxNodes must be greater than or equal to 1.");
             }
 
             if (options.Complexity.MaxConnections.HasValue && options.Complexity.MaxConnections.Value < 1)
             {
-                failures.Add("ComplexityLimits.MaxConnections must be greater than or equal to 1.");
+                (failures ??= []).Add("ComplexityLimits.MaxConnections must be greater than or equal to 1.");
             }
 
-            return failures.Count > 0
+            return failures is { Count: > 0 }
                 ? ValidateOptionsResult.Fail(failures)
                 : ValidateOptionsResult.Success;
         }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using NeatSharp.Evolution;
 
@@ -21,11 +22,11 @@ public sealed class RunReporter : IRunReporter
         ArgumentNullException.ThrowIfNull(result);
 
         var sb = new StringBuilder();
-        sb.AppendLine($"Champion Fitness: {result.Champion.Fitness}");
-        sb.AppendLine($"Champion Generation: {result.Champion.Generation}");
-        sb.AppendLine($"Total Generations: {result.History.TotalGenerations}");
-        sb.AppendLine($"Species Count: {result.Population.Species.Count}");
-        sb.AppendLine($"Seed: {result.Seed}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Champion Fitness: {result.Champion.Fitness}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Champion Generation: {result.Champion.Generation}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Generations: {result.History.TotalGenerations}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Species Count: {result.Population.Species.Count}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Seed: {result.Seed}");
 
         if (result.WasCancelled)
         {
