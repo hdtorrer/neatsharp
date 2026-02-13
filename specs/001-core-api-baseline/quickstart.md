@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NeatSharp.Configuration;
 using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
+using NeatSharp.Extensions;
 using NeatSharp.Genetics;
 
 // 1. Set up DI and configure NeatSharp
