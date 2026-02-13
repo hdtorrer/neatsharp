@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git clone:*)",
-      "Bash(if not exist \"D:\\\\Source\\\\Repos\\\\hdtorrer\\\\neatsharp\\\\.specify\\\\memory\" mkdir \"D:\\\\Source\\\\Repos\\\\hdtorrer\\\\neatsharp\\\\.specify\\\\memory\")"
-    ]
-  }
-}
