@@ -1,26 +1,23 @@
 <!--
 === Sync Impact Report ===
-Version change: 1.1.0 -> 1.2.0
-Modified principles: None (I-V unchanged)
+Version change: 1.2.0 -> 1.3.0
+Modified principles: None (I-VII unchanged)
 Added sections:
-  - Core Principle VI: SOLID Design
-  - Core Principle VII: Test-Driven Development
+  - Coding Practices > Dependency Injection
 Modified sections:
-  - Development Workflow > Definition of Done — added item 6
-    (TDD cycle compliance) to align with new Principle VII.
+  - Coding Practices > Dependency Injection is new and operationalizes
+    the Dependency Inversion sub-principle from Principle VI (SOLID).
 Removed sections: None
 Templates requiring updates:
-  - .specify/templates/plan-template.md — Constitution Check now
-    has two additional gates (SOLID, TDD). Template is generic;
-    gates are filled at plan time. ✅ No update needed.
+  - .specify/templates/plan-template.md — Constitution Check gates
+    are filled at plan time. DI practice adds a new gate candidate
+    (DI composition root). Template is generic. ✅ No update needed.
   - .specify/templates/spec-template.md — No constitution-specific
     references. ✅ Compatible.
-  - .specify/templates/tasks-template.md — Already contains
-    "Tests MUST be written and FAIL before implementation" in
-    Phase 3+ and "Within Each User Story" sections. Consistent
-    with new Principle VII. ✅ Compatible.
-  - .specify/templates/commands/*.md — No command files exist.
-    ✅ N/A.
+  - .specify/templates/tasks-template.md — No DI-specific task
+    categories needed; DI wiring is covered by setup/foundational
+    phases. ✅ Compatible.
+  - .claude/commands/*.md — No outdated references. ✅ Compatible.
   - README.md — Minimal stub; no constitution references.
     ✅ Compatible.
 Follow-up TODOs: None.
@@ -354,6 +351,53 @@ MUST NOT be committed unless a prompt is itself a user-facing asset.
 - Test projects MUST NOT reference `NeatSharp.Native` directly;
   GPU behavior MUST be tested through the public API.
 
+### Dependency Injection
+
+The library MUST use dependency injection as its primary wiring
+mechanism, operationalizing Principle VI (Dependency Inversion).
+
+- **Constructor injection** is the default and preferred mechanism
+  for providing dependencies. Property injection and method
+  injection MUST NOT be used unless a framework constraint
+  requires it (with justification in a code comment).
+- **Composition root**: The object graph MUST be assembled in a
+  single, well-defined composition root. Library consumers
+  configure the composition root; internal components MUST NOT
+  resolve services from a container directly. The Service Locator
+  pattern is forbidden.
+- **Registration extensions**: The library MUST expose extension
+  methods (e.g., `AddNeatSharp(...)`) that consumers call to
+  register all library services with their DI container.
+  Configuration options MUST be exposed via an options/builder
+  pattern in the registration call.
+- **Container abstractions**: The library MUST depend on
+  `Microsoft.Extensions.DependencyInjection.Abstractions` for
+  DI contracts (`IServiceCollection`, `IServiceProvider`). The
+  library MUST NOT depend on a specific third-party container
+  implementation. This is an accepted exception to Principle V's
+  minimal-dependency rule because these abstractions are the
+  standard .NET ecosystem contract for DI.
+- **Service lifetimes** MUST be explicit and intentional:
+  - **Singleton**: Stateless services, configuration, and caches.
+  - **Scoped**: Per-evolution-run services (one run = one scope).
+  - **Transient**: Lightweight, stateless factories and adapters.
+- **Internal construction**: Classes MUST NOT use `new` to create
+  collaborators that carry behavior (strategies, evaluators,
+  reporters). Factory delegates or `IServiceProvider` are
+  permitted only in classes explicitly designated as factories.
+- **Testability**: All DI-wired services MUST be testable by
+  injecting test doubles (mocks, stubs, fakes) through their
+  constructors. No service may depend on concrete types that
+  cannot be substituted in tests.
+
+**Rationale**: Constructor injection makes dependencies explicit,
+supports testability via mock injection, and enforces the
+Dependency Inversion principle. Using the standard
+`Microsoft.Extensions.DependencyInjection.Abstractions` ensures
+compatibility with ASP.NET Core, the .NET Generic Host, and any
+container implementing the Microsoft abstractions — covering the
+widest range of consumer scenarios without vendor lock-in.
+
 ## Governance
 
 ### License
@@ -380,4 +424,4 @@ Advisories. Maintainers MUST acknowledge reports within 7 days.
 - MINOR version: New principle or materially expanded guidance.
 - PATCH version: Clarifications, wording, and non-semantic fixes.
 
-**Version**: 1.2.0 | **Ratified**: 2026-02-12 | **Last Amended**: 2026-02-12
+**Version**: 1.3.0 | **Ratified**: 2026-02-12 | **Last Amended**: 2026-02-12

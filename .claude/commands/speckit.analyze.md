@@ -1,5 +1,5 @@
 ---
-description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
+description: Interactive cross-artifact consistency and quality analysis that presents issues one-by-one with 3 solution options, collects user feedback, then optionally applies remediation.
 ---
 
 ## User Input
@@ -8,17 +8,23 @@ description: Perform a non-destructive cross-artifact consistency and quality an
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+You **MUST** consider the user input before proceeding (if not empty). The input may specify:
+- Specific types of issues to focus on (e.g., "coverage gaps", "ambiguity", "constitution")
+- Severity filter (e.g., "critical only", "high and above")
 
 ## Goal
 
-Identify inconsistencies, duplications, ambiguities, and underspecified items across the three core artifacts (`spec.md`, `plan.md`, `tasks.md`) before implementation. This command MUST run only after `/speckit.tasks` has successfully produced a complete `tasks.md`.
+Perform an interactive consistency and quality analysis across the three core artifacts (`spec.md`, `plan.md`, `tasks.md`) that engages the user in decision-making for each identified issue. Unlike a standard analysis that dumps all findings at once, this command presents issues sequentially, offers solution alternatives, and collects user preferences before suggesting any remediation.
 
 ## Operating Constraints
 
-**STRICTLY READ-ONLY**: Do **not** modify any files. Output a structured analysis report. Offer an optional remediation plan (user must explicitly approve before any follow-up editing commands would be invoked manually).
+**READ-ONLY UNTIL REMEDIATION APPROVED**: Do not modify any files until all issues have been reviewed and user explicitly approves remediation.
 
-**Constitution Authority**: The project constitution (`.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/speckit.analyze`.
+**INTERACTIVE FLOW**: Present exactly ONE issue at a time. Wait for user input before proceeding to the next issue.
+
+**SOLUTION OPTIONS**: For each issue, provide exactly 3 distinct solution approaches with your recommended option clearly highlighted.
+
+**Constitution Authority**: The project constitution (`.specify/memory/constitution.md`) is **non-negotiable**. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle.
 
 ## Execution Steps
 
@@ -38,7 +44,6 @@ For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot
 Load only the minimal necessary context from each artifact:
 
 **From spec.md:**
-
 - Overview/Context
 - Functional Requirements
 - Non-Functional Requirements
@@ -46,14 +51,12 @@ Load only the minimal necessary context from each artifact:
 - Edge Cases (if present)
 
 **From plan.md:**
-
 - Architecture/stack choices
 - Data Model references
 - Phases
 - Technical constraints
 
 **From tasks.md:**
-
 - Task IDs
 - Descriptions
 - Phase grouping
@@ -61,123 +64,264 @@ Load only the minimal necessary context from each artifact:
 - Referenced file paths
 
 **From constitution:**
-
 - Load `.specify/memory/constitution.md` for principle validation
 
 ### 3. Build Semantic Models
 
 Create internal representations (do not include raw artifacts in output):
 
-- **Requirements inventory**: Each functional + non-functional requirement with a stable key (derive slug based on imperative phrase; e.g., "User can upload file" → `user-can-upload-file`)
+- **Requirements inventory**: Each functional + non-functional requirement with a stable key
 - **User story/action inventory**: Discrete user actions with acceptance criteria
-- **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
+- **Task coverage mapping**: Map each task to one or more requirements or stories
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
 
 ### 4. Detection Passes (Token-Efficient Analysis)
 
-Focus on high-signal findings. Limit to 50 findings total; aggregate remainder in overflow summary.
+Focus on high-signal findings. Build a prioritized queue of issues.
 
 #### A. Duplication Detection
-
 - Identify near-duplicate requirements
 - Mark lower-quality phrasing for consolidation
 
 #### B. Ambiguity Detection
-
 - Flag vague adjectives (fast, scalable, secure, intuitive, robust) lacking measurable criteria
 - Flag unresolved placeholders (TODO, TKTK, ???, `<placeholder>`, etc.)
 
 #### C. Underspecification
-
 - Requirements with verbs but missing object or measurable outcome
 - User stories missing acceptance criteria alignment
 - Tasks referencing files or components not defined in spec/plan
 
 #### D. Constitution Alignment
-
 - Any requirement or plan element conflicting with a MUST principle
 - Missing mandated sections or quality gates from constitution
 
 #### E. Coverage Gaps
-
 - Requirements with zero associated tasks
 - Tasks with no mapped requirement/story
-- Non-functional requirements not reflected in tasks (e.g., performance, security)
+- Non-functional requirements not reflected in tasks
 
 #### F. Inconsistency
-
 - Terminology drift (same concept named differently across files)
 - Data entities referenced in plan but absent in spec (or vice versa)
-- Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
-- Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
+- Task ordering contradictions
+- Conflicting requirements
 
-### 5. Severity Assignment
+### 5. Build Issue Queue with Severity
 
-Use this heuristic to prioritize findings:
+Prioritize issues using this heuristic:
 
 - **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality
 - **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion
 - **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case
 - **LOW**: Style/wording improvements, minor redundancy not affecting execution order
 
-### 6. Produce Compact Analysis Report
+Limit to a maximum of 20 issues for focused review. If more issues exist, note overflow count for potential follow-up.
 
-Output a Markdown report (no file writes) with the following structure:
+### 6. Present Initial Summary
 
-## Specification Analysis Report
+Before starting the interactive loop, give a quick overview:
 
-| ID | Category | Severity | Location(s) | Summary | Recommendation |
-|----|----------|----------|-------------|---------|----------------|
-| A1 | Duplication | HIGH | spec.md:L120-134 | Two similar requirements ... | Merge phrasing; keep clearer version |
+---
 
-(Add one row per finding; generate stable IDs prefixed by category initial.)
+## Analysis Overview
 
-**Coverage Summary Table:**
+**Artifacts Analyzed:**
+- `spec.md` - [X requirements, Y user stories]
+- `plan.md` - [X phases, Y components]
+- `tasks.md` - [X tasks across Y phases]
 
-| Requirement Key | Has Task? | Task IDs | Notes |
-|-----------------|-----------|----------|-------|
+**Issues Found:** [Total count]
+- Critical: [N]
+- High: [N]
+- Medium: [N]
+- Low: [N]
 
-**Constitution Alignment Issues:** (if any)
+**Coverage:** [X]% of requirements have associated tasks
 
-**Unmapped Tasks:** (if any)
+---
+
+**Ready to review issues one by one?**
+- `yes` - Start interactive review
+- `critical` - Only review CRITICAL issues
+- `high` - Review CRITICAL and HIGH issues only
+- `cancel` - Skip interactive review, show summary report only
+
+---
+
+### 7. Interactive Issue Presentation Loop
+
+For each issue in the queue, present it in this exact format:
+
+---
+
+#### Issue [N] of [Total] | Severity: [CRITICAL/HIGH/MEDIUM/LOW]
+
+**Category:** [Duplication/Ambiguity/Underspecification/Constitution/Coverage/Inconsistency]
+
+**Location(s):** `[file_path]:[line_number or section reference]`
+
+**Description:**
+[Clear explanation of what the issue is and why it matters]
+
+**Current State:**
+> [Quote or paraphrase the problematic content]
+
+---
+
+**Solution Options:**
+
+| Option | Approach | Trade-offs |
+|--------|----------|------------|
+| **A (Recommended)** | [Primary solution - specific edit to make] | [Pros and cons] |
+| B | [Alternative approach - different way to resolve] | [Pros and cons] |
+| C | Skip - Acknowledge and leave as-is | No change; document as accepted risk |
+
+**Why Option A is recommended:** [1-2 sentence explanation based on context]
+
+---
+
+**Your choice?** Reply with:
+- `A`, `B`, or `C` to select an option
+- `yes` or `recommended` to accept Option A
+- `skip` to skip this issue without any fix
+- `stop` to end the review early
+
+---
+
+**Rules for the loop:**
+- Present EXACTLY ONE issue at a time
+- Wait for user response before showing the next issue
+- Record each choice in working memory (do not apply yet)
+- If user says "stop", "done", or "end", exit the loop early
+- After the last issue (or early termination), proceed to Step 8
+
+### 8. Present Summary and Confirm Remediation
+
+After all issues have been reviewed, present a summary:
+
+---
+
+## Review Summary
+
+**Issues Reviewed:** [N] of [Total found]
+
+| # | Category | Severity | Location | Your Choice | Planned Action |
+|---|----------|----------|----------|-------------|----------------|
+| 1 | Coverage | CRITICAL | spec.md:FR-3 | A (Recommended) | Add task for requirement |
+| 2 | Ambiguity | HIGH | spec.md:NFR-2 | B | Add measurable criteria |
+| 3 | Duplication | MEDIUM | spec.md:L45-52 | Skip | No change |
+| ... | ... | ... | ... | ... | ... |
+
+**Remediation Required:** [N] issues selected for fixes
+**Skipped:** [N] issues
 
 **Metrics:**
+- Total Requirements: [N]
+- Total Tasks: [N]
+- Coverage: [X]%
+- Issues to Remediate: [N]
 
-- Total Requirements
-- Total Tasks
-- Coverage % (requirements with >=1 task)
-- Ambiguity Count
-- Duplication Count
-- Critical Issues Count
+---
 
-### 7. Provide Next Actions
+**Ready to generate remediation plan?**
+- `yes` or `remediate` - Generate specific edit suggestions for selected fixes
+- `modify` - Go back and change specific choices
+- `cancel` - End without remediation (choices recorded but no edits suggested)
 
-At end of report, output a concise Next Actions block:
+---
 
-- If CRITICAL issues exist: Recommend resolving before `/speckit.implement`
-- If only LOW/MEDIUM: User may proceed, but provide improvement suggestions
-- Provide explicit command suggestions: e.g., "Run /speckit.specify with refinement", "Run /speckit.plan to adjust architecture", "Manually edit tasks.md to add coverage for 'performance-metrics'"
+### 9. Generate Remediation Plan
 
-### 8. Offer Remediation
+Only after user confirms with "yes" or "remediate":
 
-Ask the user: "Would you like me to suggest concrete remediation edits for the top N issues?" (Do NOT apply them automatically.)
+For each issue where user selected Option A or B (not Skip/C), provide:
 
-## Operating Principles
+---
 
-### Context Efficiency
+## Remediation Plan
 
-- **Minimal high-signal tokens**: Focus on actionable findings, not exhaustive documentation
-- **Progressive disclosure**: Load artifacts incrementally; don't dump all content into analysis
-- **Token-efficient output**: Limit findings table to 50 rows; summarize overflow
-- **Deterministic results**: Rerunning without changes should produce consistent IDs and counts
+### Fix #1 - [Brief issue description]
 
-### Analysis Guidelines
+**File:** `[artifact path]`
+**Section:** [Section name or line reference]
 
-- **NEVER modify files** (this is read-only analysis)
-- **NEVER hallucinate missing sections** (if absent, report them accurately)
-- **Prioritize constitution violations** (these are always CRITICAL)
-- **Use examples over exhaustive rules** (cite specific instances, not generic patterns)
-- **Report zero issues gracefully** (emit success report with coverage statistics)
+**Current:**
+```markdown
+[Current content]
+```
+
+**Proposed:**
+```markdown
+[Suggested replacement]
+```
+
+---
+
+[Repeat for each fix]
+
+---
+
+**Apply these changes?**
+- `yes` or `apply` - Apply all remediation edits
+- `partial [numbers]` - Apply only specific fixes (e.g., `partial 1,3,5`)
+- `cancel` - Abort without making changes
+
+---
+
+### 10. Apply Selected Remediation
+
+Only after explicit user approval:
+
+1. Apply each edit in order
+2. Note what was changed in each file
+3. Preserve formatting and style of existing artifacts
+
+After implementation:
+
+---
+
+## Remediation Complete
+
+**Files Modified:**
+- `spec.md` - [Brief description of changes]
+- `plan.md` - [Brief description of changes]
+- `tasks.md` - [Brief description of changes]
+
+**Recommended Next Steps:**
+- Review changes: `git diff`
+- Re-run analysis to verify: `/speckit.analyze`
+- If CRITICAL issues remain, resolve before `/speckit.implement`
+
+---
+
+### 11. Handle Edge Cases
+
+**No issues found:**
+> "Analysis complete. No significant issues found across spec.md, plan.md, and tasks.md. Coverage: [X]%. Ready for implementation!"
+
+**User provides "modify" after summary:**
+> "Which issue number would you like to change? (Enter number or 'list' to see summary again)"
+
+**User cancels:**
+> "Analysis complete. No remediation applied. Your choice records are not saved."
+
+**User selects "summary only" at start:**
+Output the traditional summary report format (findings table, coverage summary, metrics) without interactive flow.
+
+**User stops early:**
+Proceed to Step 8 with only the issues reviewed so far.
+
+## Behavior Rules
+
+- **Never auto-remediate**: Always wait for explicit user confirmation before modifying files
+- **Be concise**: Keep issue descriptions clear and actionable
+- **Respect user choices**: If user picks option B or C, honor that choice without second-guessing
+- **Maintain context**: Remember all choices throughout the session
+- **One issue at a time**: Never present multiple issues in a single message
+- **Honest recommendations**: Base recommendations on actual artifact context, not generic rules
+- **Skip gracefully**: "Skip" is always a valid choice; don't pressure users to fix everything
+- **Prioritize constitution**: Constitution violations are always CRITICAL and Option A should always resolve the conflict
 
 ## Context
 
