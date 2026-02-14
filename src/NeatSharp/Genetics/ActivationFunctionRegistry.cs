@@ -1,22 +1,27 @@
+using System.Collections.Concurrent;
+
 namespace NeatSharp.Genetics;
 
 /// <summary>
-/// Dictionary-backed registry mapping activation function names to their
+/// Thread-safe registry mapping activation function names to their
 /// implementations. Pre-populated with five built-in functions.
 /// </summary>
 /// <remarks>
 /// Name lookups are case-insensitive (<see cref="StringComparer.OrdinalIgnoreCase"/>).
+/// Uses <see cref="ConcurrentDictionary{TKey, TValue}"/> for safe concurrent access.
 /// </remarks>
 public sealed class ActivationFunctionRegistry : IActivationFunctionRegistry
 {
-    private readonly Dictionary<string, Func<double, double>> _functions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        [ActivationFunctions.Sigmoid] = ActivationFunctions.SigmoidFunction,
-        [ActivationFunctions.Tanh] = ActivationFunctions.TanhFunction,
-        [ActivationFunctions.ReLU] = ActivationFunctions.ReLUFunction,
-        [ActivationFunctions.Step] = ActivationFunctions.StepFunction,
-        [ActivationFunctions.Identity] = ActivationFunctions.IdentityFunction,
-    };
+    private readonly ConcurrentDictionary<string, Func<double, double>> _functions = new(
+        new Dictionary<string, Func<double, double>>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ActivationFunctions.Sigmoid] = ActivationFunctions.SigmoidFunction,
+            [ActivationFunctions.Tanh] = ActivationFunctions.TanhFunction,
+            [ActivationFunctions.ReLU] = ActivationFunctions.ReLUFunction,
+            [ActivationFunctions.Step] = ActivationFunctions.StepFunction,
+            [ActivationFunctions.Identity] = ActivationFunctions.IdentityFunction,
+        },
+        StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public Func<double, double> Get(string name)
@@ -35,17 +40,15 @@ public sealed class ActivationFunctionRegistry : IActivationFunctionRegistry
     /// <inheritdoc />
     public void Register(string name, Func<double, double> function)
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(function);
 
-        if (_functions.ContainsKey(name))
+        if (!_functions.TryAdd(name, function))
         {
             throw new ArgumentException(
                 $"An activation function is already registered with name '{name}'.",
                 nameof(name));
         }
-
-        _functions[name] = function;
     }
 
     /// <inheritdoc />

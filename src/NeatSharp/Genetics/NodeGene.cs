@@ -14,4 +14,4 @@ namespace NeatSharp.Genetics;
 public sealed record NodeGene(
     int Id,
     NodeType Type,
-    string ActivationFunction = "sigmoid");
+    string ActivationFunction = ActivationFunctions.Sigmoid);

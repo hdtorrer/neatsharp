@@ -198,23 +198,24 @@ public sealed class FeedForwardNetworkBuilder : INetworkBuilder
         }
 
         // Identify input, bias, and output buffer indices
+        // Iterate genome.Nodes (not sortedOrder) to preserve declaration order,
+        // ensuring inputs[i] maps to the i-th input node as declared in the genome.
         var inputIndices = new List<int>();
         var biasIndices = new List<int>();
         var outputIndices = new List<int>();
 
-        foreach (int nodeId in sortedOrder)
+        foreach (var node in genome.Nodes)
         {
-            var node = nodeById[nodeId];
             switch (node.Type)
             {
                 case NodeType.Input:
-                    inputIndices.Add(bufferIndex[nodeId]);
+                    inputIndices.Add(bufferIndex[node.Id]);
                     break;
                 case NodeType.Bias:
-                    biasIndices.Add(bufferIndex[nodeId]);
+                    biasIndices.Add(bufferIndex[node.Id]);
                     break;
                 case NodeType.Output:
-                    outputIndices.Add(bufferIndex[nodeId]);
+                    outputIndices.Add(bufferIndex[node.Id]);
                     break;
             }
         }
