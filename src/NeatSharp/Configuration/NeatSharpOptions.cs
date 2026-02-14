@@ -45,4 +45,30 @@ public class NeatSharpOptions
     /// Default is <c>true</c>.
     /// </summary>
     public bool EnableMetrics { get; set; } = true;
+
+    /// <summary>
+    /// Mutation operator rates and parameters.
+    /// </summary>
+    public MutationOptions Mutation { get; set; } = new();
+
+    /// <summary>
+    /// Crossover operator parameters.
+    /// </summary>
+    public CrossoverOptions Crossover { get; set; } = new();
+
+    /// <summary>
+    /// Compatibility distance coefficients and speciation threshold.
+    /// </summary>
+    public SpeciationOptions Speciation { get; set; } = new();
+
+    /// <summary>
+    /// Parent selection, elitism, and stagnation parameters.
+    /// </summary>
+    public SelectionOptions Selection { get; set; } = new();
+
+    /// <summary>
+    /// Optional soft complexity penalty that reduces effective fitness based on genome size.
+    /// Disabled by default (Coefficient = 0.0).
+    /// </summary>
+    public ComplexityPenaltyOptions ComplexityPenalty { get; set; } = new();
 }
