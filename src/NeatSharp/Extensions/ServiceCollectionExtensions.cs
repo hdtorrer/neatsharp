@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NeatSharp.Configuration;
 using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
+using NeatSharp.Genetics;
 using NeatSharp.Reporting;
 
 namespace NeatSharp.Extensions;
@@ -37,6 +38,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<NeatSharpOptions>, NeatSharpOptionsValidator>();
         services.AddSingleton<IRunReporter, RunReporter>();
         services.AddScoped<INeatEvolver, NeatEvolverStub>();
+
+        // Genome / Phenotype services (Spec 002)
+        services.AddSingleton<IActivationFunctionRegistry, ActivationFunctionRegistry>();
+        services.AddSingleton<INetworkBuilder, FeedForwardNetworkBuilder>();
+        services.AddScoped<IInnovationTracker, InnovationTracker>();
 
         return services;
     }
