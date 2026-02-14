@@ -5,7 +5,7 @@ using Xunit;
 
 namespace NeatSharp.Tests.Evolution.Selection;
 
-public class StochasticUniversalSamplingSelectorTests
+public class SinglePointerSelectorTests
 {
     private static readonly IReadOnlyList<NodeGene> MinimalNodes =
     [
@@ -16,7 +16,7 @@ public class StochasticUniversalSamplingSelectorTests
     private static Genome MakeGenome(double weight = 1.0) =>
         new(MinimalNodes, [new ConnectionGene(0, 0, 1, weight, true)]);
 
-    private static StochasticUniversalSamplingSelector CreateSut() => new();
+    private static SinglePointerSelector CreateSut() => new();
 
     #region Fitness-Proportional Selection
 
@@ -56,7 +56,7 @@ public class StochasticUniversalSamplingSelectorTests
     [Fact]
     public void Select_MoreUniformThanRoulette_OverBatchSelections()
     {
-        // With equal fitness, SUS should produce a very uniform distribution
+        // With equal fitness, both selectors should produce a very uniform distribution
         var genomes = Enumerable.Range(0, 5)
             .Select(i => (MakeGenome(i), 10.0)) // Equal fitness
             .ToList();
@@ -64,34 +64,33 @@ public class StochasticUniversalSamplingSelectorTests
         var sut = CreateSut();
         var roulette = new RouletteWheelSelector();
 
-        // Track selection frequency for SUS
-        var susFrequency = new int[5];
+        // Track selection frequency for SinglePointer
+        var singlePointerFrequency = new int[5];
         var rouletteFrequency = new int[5];
         int totalSelections = 1000;
 
         for (int seed = 0; seed < totalSelections; seed++)
         {
-            var susResult = sut.Select(genomes, new Random(seed));
+            var singlePointerResult = sut.Select(genomes, new Random(seed));
             var rouletteResult = roulette.Select(genomes, new Random(seed));
 
             for (int i = 0; i < 5; i++)
             {
-                if (ReferenceEquals(susResult, genomes[i].Item1))
-                    susFrequency[i]++;
+                if (ReferenceEquals(singlePointerResult, genomes[i].Item1))
+                    singlePointerFrequency[i]++;
                 if (ReferenceEquals(rouletteResult, genomes[i].Item1))
                     rouletteFrequency[i]++;
             }
         }
 
         // With equal fitness, both should roughly select each candidate 20% of the time
-        // SUS should have lower variance (more uniform)
         double expectedFreq = totalSelections / 5.0;
-        double susVariance = susFrequency.Select(f => Math.Pow(f - expectedFreq, 2)).Average();
+        double singlePointerVariance = singlePointerFrequency.Select(f => Math.Pow(f - expectedFreq, 2)).Average();
         double rouletteVariance = rouletteFrequency.Select(f => Math.Pow(f - expectedFreq, 2)).Average();
 
-        // SUS variance should be <= roulette variance (or at least comparable)
-        susVariance.Should().BeLessThanOrEqualTo(rouletteVariance * 1.5,
-            "SUS should produce at least as uniform a distribution as roulette");
+        // Variance should be comparable
+        singlePointerVariance.Should().BeLessThanOrEqualTo(rouletteVariance * 1.5,
+            "SinglePointerSelector should produce at least as uniform a distribution as roulette");
     }
 
     #endregion

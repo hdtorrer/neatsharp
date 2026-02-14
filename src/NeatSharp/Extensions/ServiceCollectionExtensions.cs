@@ -67,7 +67,7 @@ public static class ServiceCollectionExtensions
 
         // Evolution: Speciation (Spec 003)
         services.AddSingleton<ICompatibilityDistance, CompatibilityDistance>();
-        services.AddSingleton<ISpeciationStrategy, CompatibilitySpeciation>();
+        services.AddScoped<ISpeciationStrategy, CompatibilitySpeciation>();
 
         // Evolution: Selection (Spec 003)
         services.TryAddSingleton<IParentSelector, TournamentSelector>();
@@ -143,6 +143,12 @@ public static class ServiceCollectionExtensions
             if (options.Mutation.MaxAddConnectionAttempts < 1)
             {
                 (failures ??= []).Add("Mutation.MaxAddConnectionAttempts must be greater than or equal to 1.");
+            }
+
+            if (options.Mutation.WeightPerturbationRate + options.Mutation.WeightReplacementRate > 1.0)
+            {
+                (failures ??= []).Add(
+                    "Mutation.WeightPerturbationRate + Mutation.WeightReplacementRate must not exceed 1.0 (they are mutually exclusive).");
             }
 
             // CrossoverOptions validation

@@ -25,7 +25,7 @@ public sealed class NeatCrossover : ICrossoverOperator
         Random random)
     {
         var crossoverOptions = _options.Crossover;
-        bool equalFitness = parent1Fitness == parent2Fitness;
+        bool equalFitness = Math.Abs(parent1Fitness - parent2Fitness) < 1e-10;
 
         // Determine which parent is fitter. If equal, parent1 is the "fitter" reference
         // for input/output/bias node inheritance.

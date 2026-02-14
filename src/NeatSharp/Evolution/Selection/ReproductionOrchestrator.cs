@@ -157,8 +157,10 @@ public sealed class ReproductionOrchestrator
             if (ReferenceEquals(g, genome))
                 return fitness;
         }
-        // Fallback: return 0 if not found (should not happen)
-        return 0.0;
+
+        throw new InvalidOperationException(
+            "Selected genome was not found in the candidates list. "
+            + "This indicates a bug in the IParentSelector implementation.");
     }
 
     private static Species PickDifferentSpecies(

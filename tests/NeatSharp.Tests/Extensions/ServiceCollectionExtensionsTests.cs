@@ -330,16 +330,23 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddNeatSharp_RegistersISpeciationStrategyAsSingleton()
+    public void AddNeatSharp_RegistersISpeciationStrategyAsScoped()
     {
         var provider = BuildProviderWithDefaults();
 
-        var strategy1 = provider.GetRequiredService<ISpeciationStrategy>();
-        var strategy2 = provider.GetRequiredService<ISpeciationStrategy>();
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
 
-        strategy1.Should().NotBeNull();
-        strategy1.Should().BeOfType<CompatibilitySpeciation>();
-        strategy1.Should().BeSameAs(strategy2);
+        var strategy1a = scope1.ServiceProvider.GetRequiredService<ISpeciationStrategy>();
+        var strategy1b = scope1.ServiceProvider.GetRequiredService<ISpeciationStrategy>();
+        var strategy2 = scope2.ServiceProvider.GetRequiredService<ISpeciationStrategy>();
+
+        strategy1a.Should().NotBeNull();
+        strategy1a.Should().BeOfType<CompatibilitySpeciation>();
+        // Same scope → same instance
+        strategy1a.Should().BeSameAs(strategy1b);
+        // Different scope → different instance
+        strategy1a.Should().NotBeSameAs(strategy2);
     }
 
     [Fact]
@@ -385,13 +392,13 @@ public class ServiceCollectionExtensionsTests
         // User registers after AddNeatSharp — last registration wins for non-TryAdd
         // But since we use TryAddSingleton, registering before is the supported way.
         // Registering after with AddSingleton also works because it adds another descriptor.
-        services.AddSingleton<IParentSelector, StochasticUniversalSamplingSelector>();
+        services.AddSingleton<IParentSelector, SinglePointerSelector>();
         var provider = services.BuildServiceProvider();
 
         var selector = provider.GetRequiredService<IParentSelector>();
 
         // Last registration wins for GetRequiredService
-        selector.Should().BeOfType<StochasticUniversalSamplingSelector>();
+        selector.Should().BeOfType<SinglePointerSelector>();
     }
 
     [Fact]

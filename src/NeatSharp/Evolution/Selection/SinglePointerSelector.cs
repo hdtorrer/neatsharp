@@ -3,17 +3,17 @@ using NeatSharp.Genetics;
 namespace NeatSharp.Evolution.Selection;
 
 /// <summary>
-/// Selects a parent using Stochastic Universal Sampling (SUS).
-/// Uses a single random start point with evenly spaced pointers for more
-/// uniform selection compared to roulette wheel.
+/// Selects a parent using a single random pointer into a fitness-proportional distribution.
+/// If any fitness value is less than or equal to zero, all values are shifted
+/// by |min| + epsilon to ensure positive selection weights.
 /// </summary>
 /// <remarks>
-/// When called repeatedly with the same <see cref="Random"/> instance,
-/// each call selects one parent using a single pointer at a random start
-/// position within [0, totalFitness), providing the SUS spacing benefit
-/// across sequential calls.
+/// This selector uses the same single-pointer fitness-proportional mechanism as
+/// <see cref="RouletteWheelSelector"/>. For true Stochastic Universal Sampling
+/// (evenly spaced pointers for batch selection), a batch-aware selector interface
+/// would be required.
 /// </remarks>
-public sealed class StochasticUniversalSamplingSelector : IParentSelector
+public sealed class SinglePointerSelector : IParentSelector
 {
     private const double Epsilon = 1e-6;
 
@@ -38,8 +38,6 @@ public sealed class StochasticUniversalSamplingSelector : IParentSelector
             totalFitness += candidates[i].Fitness + shift;
         }
 
-        // Single pointer: spacing = totalFitness (selecting 1 out of N)
-        // Start at random position in [0, totalFitness)
         double pointer = random.NextDouble() * totalFitness;
         double accumulated = 0.0;
 
