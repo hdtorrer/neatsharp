@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using NeatSharp.Configuration;
 using NeatSharp.Evolution;
 using NeatSharp.Extensions;
+using NeatSharp.Genetics;
 using NeatSharp.Reporting;
 using Xunit;
 
@@ -118,5 +119,102 @@ public class ServiceCollectionExtensionsTests
         var reporter2 = provider.GetRequiredService<IRunReporter>();
 
         reporter1.Should().BeSameAs(reporter2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIActivationFunctionRegistryAsSingleton()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        var registry1 = provider.GetRequiredService<IActivationFunctionRegistry>();
+        var registry2 = provider.GetRequiredService<IActivationFunctionRegistry>();
+
+        registry1.Should().NotBeNull();
+        registry1.Should().BeSameAs(registry2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_IActivationFunctionRegistry_ContainsFiveBuiltInFunctions()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        var registry = provider.GetRequiredService<IActivationFunctionRegistry>();
+
+        registry.Contains(ActivationFunctions.Sigmoid).Should().BeTrue();
+        registry.Contains(ActivationFunctions.Tanh).Should().BeTrue();
+        registry.Contains(ActivationFunctions.ReLU).Should().BeTrue();
+        registry.Contains(ActivationFunctions.Step).Should().BeTrue();
+        registry.Contains(ActivationFunctions.Identity).Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersINetworkBuilderAsSingleton()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        var builder1 = provider.GetRequiredService<INetworkBuilder>();
+        var builder2 = provider.GetRequiredService<INetworkBuilder>();
+
+        builder1.Should().NotBeNull();
+        builder1.Should().BeSameAs(builder2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_INetworkBuilder_CanBuildSimpleGenome()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        var builder = provider.GetRequiredService<INetworkBuilder>();
+        var genome = new Genome(
+            [new NodeGene(0, NodeType.Input), new NodeGene(1, NodeType.Output)],
+            [new ConnectionGene(1, SourceNodeId: 0, TargetNodeId: 1, Weight: 1.0, IsEnabled: true)]);
+
+        var network = builder.Build(genome);
+
+        network.Should().NotBeNull();
+        network.NodeCount.Should().Be(2);
+        network.ConnectionCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIInnovationTrackerAsScoped()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var tracker1a = scope1.ServiceProvider.GetRequiredService<IInnovationTracker>();
+        var tracker1b = scope1.ServiceProvider.GetRequiredService<IInnovationTracker>();
+        var tracker2 = scope2.ServiceProvider.GetRequiredService<IInnovationTracker>();
+
+        // Same scope → same instance
+        tracker1a.Should().BeSameAs(tracker1b);
+        // Different scope → different instance
+        tracker1a.Should().NotBeSameAs(tracker2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_ExistingRegistrations_StillResolveCorrectly()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        var provider = services.BuildServiceProvider();
+
+        provider.GetService<IRunReporter>().Should().NotBeNull();
+        provider.GetRequiredService<IOptions<NeatSharpOptions>>().Value.Should().NotBeNull();
+
+        using var scope = provider.CreateScope();
+        scope.ServiceProvider.GetService<INeatEvolver>().Should().NotBeNull();
     }
 }
