@@ -155,22 +155,22 @@ public sealed class NeatCrossover : ICrossoverOperator
 
             if (!nodeMap.ContainsKey(conn.SourceNodeId))
             {
-                // Prefer the node definition from the connection's source parent,
-                // fall back to fitter parent's definition
-                if (sourceNodeMap.TryGetValue(conn.SourceNodeId, out var sourceNode))
-                    nodeMap[conn.SourceNodeId] = sourceNode;
-                else if (fitterNodeMap.TryGetValue(conn.SourceNodeId, out var fitterNode))
+                // Prefer the node definition from the fitter parent when both have it,
+                // fall back to the connection's source parent, then less-fit parent
+                if (fitterNodeMap.TryGetValue(conn.SourceNodeId, out var fitterNode))
                     nodeMap[conn.SourceNodeId] = fitterNode;
+                else if (sourceNodeMap.TryGetValue(conn.SourceNodeId, out var sourceNode))
+                    nodeMap[conn.SourceNodeId] = sourceNode;
                 else if (lessFitNodeMap.TryGetValue(conn.SourceNodeId, out var lessFitNode))
                     nodeMap[conn.SourceNodeId] = lessFitNode;
             }
 
             if (!nodeMap.ContainsKey(conn.TargetNodeId))
             {
-                if (sourceNodeMap.TryGetValue(conn.TargetNodeId, out var targetNode))
-                    nodeMap[conn.TargetNodeId] = targetNode;
-                else if (fitterNodeMap.TryGetValue(conn.TargetNodeId, out var fitterNode))
+                if (fitterNodeMap.TryGetValue(conn.TargetNodeId, out var fitterNode))
                     nodeMap[conn.TargetNodeId] = fitterNode;
+                else if (sourceNodeMap.TryGetValue(conn.TargetNodeId, out var targetNode))
+                    nodeMap[conn.TargetNodeId] = targetNode;
                 else if (lessFitNodeMap.TryGetValue(conn.TargetNodeId, out var lessFitNode))
                     nodeMap[conn.TargetNodeId] = lessFitNode;
             }
