@@ -1,8 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NeatSharp.Configuration;
 using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
+using NeatSharp.Evolution.Crossover;
+using NeatSharp.Evolution.Mutation;
+using NeatSharp.Evolution.Selection;
+using NeatSharp.Evolution.Speciation;
 using NeatSharp.Genetics;
 using NeatSharp.Reporting;
 
@@ -43,6 +48,31 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IActivationFunctionRegistry, ActivationFunctionRegistry>();
         services.AddSingleton<INetworkBuilder, FeedForwardNetworkBuilder>();
         services.AddScoped<IInnovationTracker, InnovationTracker>();
+
+        // Evolution: Mutation operators (Spec 003)
+        services.AddSingleton<WeightPerturbationMutation>();
+        services.AddSingleton<IMutationOperator>(sp => sp.GetRequiredService<WeightPerturbationMutation>());
+        services.AddSingleton<WeightReplacementMutation>();
+        services.AddSingleton<IMutationOperator>(sp => sp.GetRequiredService<WeightReplacementMutation>());
+        services.AddSingleton<AddConnectionMutation>();
+        services.AddSingleton<IMutationOperator>(sp => sp.GetRequiredService<AddConnectionMutation>());
+        services.AddSingleton<AddNodeMutation>();
+        services.AddSingleton<IMutationOperator>(sp => sp.GetRequiredService<AddNodeMutation>());
+        services.AddSingleton<ToggleEnableMutation>();
+        services.AddSingleton<IMutationOperator>(sp => sp.GetRequiredService<ToggleEnableMutation>());
+        services.AddSingleton<CompositeMutationOperator>();
+
+        // Evolution: Crossover (Spec 003)
+        services.AddSingleton<ICrossoverOperator, NeatCrossover>();
+
+        // Evolution: Speciation (Spec 003)
+        services.AddSingleton<ICompatibilityDistance, CompatibilityDistance>();
+        services.AddScoped<ISpeciationStrategy, CompatibilitySpeciation>();
+
+        // Evolution: Selection (Spec 003)
+        services.TryAddSingleton<IParentSelector, TournamentSelector>();
+        services.AddSingleton<ReproductionAllocator>();
+        services.AddSingleton<ReproductionOrchestrator>();
 
         return services;
     }
@@ -93,9 +123,98 @@ public static class ServiceCollectionExtensions
                 (failures ??= []).Add("ComplexityLimits.MaxConnections must be greater than or equal to 1.");
             }
 
+            // MutationOptions validation
+            ValidateRate(ref failures, options.Mutation.WeightPerturbationRate, "Mutation.WeightPerturbationRate");
+            ValidateRate(ref failures, options.Mutation.WeightReplacementRate, "Mutation.WeightReplacementRate");
+            ValidateRate(ref failures, options.Mutation.AddConnectionRate, "Mutation.AddConnectionRate");
+            ValidateRate(ref failures, options.Mutation.AddNodeRate, "Mutation.AddNodeRate");
+            ValidateRate(ref failures, options.Mutation.ToggleEnableRate, "Mutation.ToggleEnableRate");
+
+            if (options.Mutation.PerturbationPower <= 0.0)
+            {
+                (failures ??= []).Add("Mutation.PerturbationPower must be greater than 0.");
+            }
+
+            if (options.Mutation.WeightMinValue >= options.Mutation.WeightMaxValue)
+            {
+                (failures ??= []).Add("Mutation.WeightMinValue must be less than Mutation.WeightMaxValue.");
+            }
+
+            if (options.Mutation.MaxAddConnectionAttempts < 1)
+            {
+                (failures ??= []).Add("Mutation.MaxAddConnectionAttempts must be greater than or equal to 1.");
+            }
+
+            if (options.Mutation.WeightPerturbationRate + options.Mutation.WeightReplacementRate > 1.0)
+            {
+                (failures ??= []).Add(
+                    "Mutation.WeightPerturbationRate + Mutation.WeightReplacementRate must not exceed 1.0 (they are mutually exclusive).");
+            }
+
+            // CrossoverOptions validation
+            ValidateRate(ref failures, options.Crossover.CrossoverRate, "Crossover.CrossoverRate");
+            ValidateRate(ref failures, options.Crossover.InterspeciesCrossoverRate, "Crossover.InterspeciesCrossoverRate");
+            ValidateRate(ref failures, options.Crossover.DisabledGeneInheritanceProbability, "Crossover.DisabledGeneInheritanceProbability");
+
+            // SpeciationOptions validation
+            if (options.Speciation.ExcessCoefficient < 0.0)
+            {
+                (failures ??= []).Add("Speciation.ExcessCoefficient must be greater than or equal to 0.");
+            }
+
+            if (options.Speciation.DisjointCoefficient < 0.0)
+            {
+                (failures ??= []).Add("Speciation.DisjointCoefficient must be greater than or equal to 0.");
+            }
+
+            if (options.Speciation.WeightDifferenceCoefficient < 0.0)
+            {
+                (failures ??= []).Add("Speciation.WeightDifferenceCoefficient must be greater than or equal to 0.");
+            }
+
+            if (options.Speciation.CompatibilityThreshold <= 0.0)
+            {
+                (failures ??= []).Add("Speciation.CompatibilityThreshold must be greater than 0.");
+            }
+
+            // SelectionOptions validation
+            if (options.Selection.ElitismThreshold < 1)
+            {
+                (failures ??= []).Add("Selection.ElitismThreshold must be greater than or equal to 1.");
+            }
+
+            if (options.Selection.StagnationThreshold < 1)
+            {
+                (failures ??= []).Add("Selection.StagnationThreshold must be greater than or equal to 1.");
+            }
+
+            if (options.Selection.SurvivalThreshold is <= 0.0 or > 1.0)
+            {
+                (failures ??= []).Add("Selection.SurvivalThreshold must be in the range (0, 1].");
+            }
+
+            if (options.Selection.TournamentSize < 1)
+            {
+                (failures ??= []).Add("Selection.TournamentSize must be greater than or equal to 1.");
+            }
+
+            // ComplexityPenaltyOptions validation
+            if (options.ComplexityPenalty.Coefficient < 0.0)
+            {
+                (failures ??= []).Add("ComplexityPenalty.Coefficient must be greater than or equal to 0.");
+            }
+
             return failures is { Count: > 0 }
                 ? ValidateOptionsResult.Fail(failures)
                 : ValidateOptionsResult.Success;
+        }
+
+        private static void ValidateRate(ref List<string>? failures, double value, string name)
+        {
+            if (value is < 0.0 or > 1.0)
+            {
+                (failures ??= []).Add($"{name} must be in the range [0, 1].");
+            }
         }
     }
 
