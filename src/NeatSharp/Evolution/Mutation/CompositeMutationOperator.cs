@@ -10,7 +10,7 @@ namespace NeatSharp.Evolution.Mutation;
 /// then structural (add-node, add-connection independently), then toggle-enable.
 /// Multiple mutations can apply to the same genome in a single call.
 /// </summary>
-public sealed class CompositeMutationOperator
+public sealed class CompositeMutationOperator : IMutationOperator
 {
     private readonly NeatSharpOptions _options;
     private readonly WeightPerturbationMutation _weightPerturbation;

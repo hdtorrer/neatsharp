@@ -48,8 +48,6 @@ public sealed class NeatCrossover : ICrossoverOperator
         int fi = 0, li = 0;
 
         var inheritedConnections = new List<ConnectionGene>();
-        // Track which parent each inherited connection came from for node resolution
-        var connectionParentSource = new List<Genome>();
 
         while (fi < fitterConns.Count || li < lessFitConns.Count)
         {
@@ -59,7 +57,6 @@ public sealed class NeatCrossover : ICrossoverOperator
                 if (equalFitness)
                 {
                     inheritedConnections.Add(lessFitConns[li]);
-                    connectionParentSource.Add(lessFit);
                 }
                 li++;
             }
@@ -67,7 +64,6 @@ public sealed class NeatCrossover : ICrossoverOperator
             {
                 // Remaining are excess from fitter parent
                 inheritedConnections.Add(fitterConns[fi]);
-                connectionParentSource.Add(fitter);
                 fi++;
             }
             else
@@ -80,7 +76,6 @@ public sealed class NeatCrossover : ICrossoverOperator
                     // Matching gene — randomly inherit from either parent (50/50)
                     bool pickFitter = random.NextDouble() < 0.5;
                     var chosenGene = pickFitter ? fitterConns[fi] : lessFitConns[li];
-                    var sourceParent = pickFitter ? fitter : lessFit;
 
                     // Apply disabled gene inheritance rule:
                     // Both disabled → always disabled
@@ -99,7 +94,6 @@ public sealed class NeatCrossover : ICrossoverOperator
                     }
 
                     inheritedConnections.Add(chosenGene);
-                    connectionParentSource.Add(sourceParent);
                     fi++;
                     li++;
                 }
@@ -107,7 +101,6 @@ public sealed class NeatCrossover : ICrossoverOperator
                 {
                     // Disjoint gene from fitter parent — always inherited
                     inheritedConnections.Add(fitterConns[fi]);
-                    connectionParentSource.Add(fitter);
                     fi++;
                 }
                 else
@@ -116,7 +109,6 @@ public sealed class NeatCrossover : ICrossoverOperator
                     if (equalFitness)
                     {
                         inheritedConnections.Add(lessFitConns[li]);
-                        connectionParentSource.Add(lessFit);
                     }
                     li++;
                 }
@@ -146,21 +138,13 @@ public sealed class NeatCrossover : ICrossoverOperator
         foreach (var node in lessFit.Nodes)
             lessFitNodeMap[node.Id] = node;
 
-        // Add nodes referenced by inherited connections
-        for (int i = 0; i < inheritedConnections.Count; i++)
+        // Add nodes referenced by inherited connections (prefer fitter parent's definition)
+        foreach (var conn in inheritedConnections)
         {
-            var conn = inheritedConnections[i];
-            var sourceParent = connectionParentSource[i];
-            var sourceNodeMap = sourceParent == fitter ? fitterNodeMap : lessFitNodeMap;
-
             if (!nodeMap.ContainsKey(conn.SourceNodeId))
             {
-                // Prefer the node definition from the fitter parent when both have it,
-                // fall back to the connection's source parent, then less-fit parent
                 if (fitterNodeMap.TryGetValue(conn.SourceNodeId, out var fitterNode))
                     nodeMap[conn.SourceNodeId] = fitterNode;
-                else if (sourceNodeMap.TryGetValue(conn.SourceNodeId, out var sourceNode))
-                    nodeMap[conn.SourceNodeId] = sourceNode;
                 else if (lessFitNodeMap.TryGetValue(conn.SourceNodeId, out var lessFitNode))
                     nodeMap[conn.SourceNodeId] = lessFitNode;
             }
@@ -169,8 +153,6 @@ public sealed class NeatCrossover : ICrossoverOperator
             {
                 if (fitterNodeMap.TryGetValue(conn.TargetNodeId, out var fitterNode))
                     nodeMap[conn.TargetNodeId] = fitterNode;
-                else if (sourceNodeMap.TryGetValue(conn.TargetNodeId, out var targetNode))
-                    nodeMap[conn.TargetNodeId] = targetNode;
                 else if (lessFitNodeMap.TryGetValue(conn.TargetNodeId, out var lessFitNode))
                     nodeMap[conn.TargetNodeId] = lessFitNode;
             }

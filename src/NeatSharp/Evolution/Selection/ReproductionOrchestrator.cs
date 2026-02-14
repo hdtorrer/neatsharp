@@ -75,6 +75,7 @@ public sealed class ReproductionOrchestrator
 
             // Filter to top SurvivalThreshold fraction for parent selection
             var candidates = GetSurvivors(s, selectionOptions.SurvivalThreshold);
+            var fitnessMap = BuildFitnessMap(candidates);
 
             // Produce remaining offspring
             for (int i = 0; i < remaining; i++)
@@ -85,7 +86,7 @@ public sealed class ReproductionOrchestrator
                 {
                     // Crossover
                     var parent1 = _parentSelector.Select(candidates, random);
-                    double parent1Fitness = GetFitness(candidates, parent1);
+                    double parent1Fitness = fitnessMap[parent1];
 
                     Genome parent2;
                     double parent2Fitness;
@@ -96,14 +97,15 @@ public sealed class ReproductionOrchestrator
                         // Interspecies crossover: pick parent from a different species
                         var otherSpecies = PickDifferentSpecies(species, s, random);
                         var otherCandidates = GetSurvivors(otherSpecies, selectionOptions.SurvivalThreshold);
+                        var otherFitnessMap = BuildFitnessMap(otherCandidates);
                         parent2 = _parentSelector.Select(otherCandidates, random);
-                        parent2Fitness = GetFitness(otherCandidates, parent2);
+                        parent2Fitness = otherFitnessMap[parent2];
                     }
                     else
                     {
                         // Same-species crossover
                         parent2 = _parentSelector.Select(candidates, random);
-                        parent2Fitness = GetFitness(candidates, parent2);
+                        parent2Fitness = fitnessMap[parent2];
                     }
 
                     child = _crossoverOperator.Cross(parent1, parent1Fitness, parent2, parent2Fitness, random);
@@ -149,18 +151,15 @@ public sealed class ReproductionOrchestrator
         return sorted.Take(surviveCount).ToList();
     }
 
-    private static double GetFitness(
-        IReadOnlyList<(Genome Genome, double Fitness)> candidates, Genome genome)
+    private static Dictionary<Genome, double> BuildFitnessMap(
+        IReadOnlyList<(Genome Genome, double Fitness)> candidates)
     {
-        foreach (var (g, fitness) in candidates)
+        var map = new Dictionary<Genome, double>(candidates.Count);
+        foreach (var (genome, fitness) in candidates)
         {
-            if (ReferenceEquals(g, genome))
-                return fitness;
+            map.TryAdd(genome, fitness);
         }
-
-        throw new InvalidOperationException(
-            "Selected genome was not found in the candidates list. "
-            + "This indicates a bug in the IParentSelector implementation.");
+        return map;
     }
 
     private static Species PickDifferentSpecies(

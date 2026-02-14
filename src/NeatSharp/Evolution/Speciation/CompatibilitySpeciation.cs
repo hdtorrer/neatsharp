@@ -76,7 +76,7 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
         // Step 3: Remove empty species
         species.RemoveAll(s => s.Members.Count == 0);
 
-        // Step 4: Update representatives to best-performing member
+        // Step 4: Update representatives and stagnation counters
         foreach (var s in species)
         {
             var bestMember = s.Members[0];
@@ -85,16 +85,12 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
                 if (s.Members[i].Fitness > bestMember.Fitness)
                     bestMember = s.Members[i];
             }
-            s.Representative = bestMember.Genome;
-        }
 
-        // Step 5: Update stagnation counters
-        foreach (var s in species)
-        {
-            double currentBest = s.Members.Max(m => m.Fitness);
-            if (currentBest > s.BestFitnessEver)
+            s.Representative = bestMember.Genome;
+
+            if (bestMember.Fitness > s.BestFitnessEver)
             {
-                s.BestFitnessEver = currentBest;
+                s.BestFitnessEver = bestMember.Fitness;
                 s.GenerationsSinceImprovement = 0;
             }
             else

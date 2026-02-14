@@ -392,13 +392,13 @@ public class ServiceCollectionExtensionsTests
         // User registers after AddNeatSharp — last registration wins for non-TryAdd
         // But since we use TryAddSingleton, registering before is the supported way.
         // Registering after with AddSingleton also works because it adds another descriptor.
-        services.AddSingleton<IParentSelector, SinglePointerSelector>();
+        services.AddSingleton<IParentSelector, RouletteWheelSelector>();
         var provider = services.BuildServiceProvider();
 
         var selector = provider.GetRequiredService<IParentSelector>();
 
         // Last registration wins for GetRequiredService
-        selector.Should().BeOfType<SinglePointerSelector>();
+        selector.Should().BeOfType<RouletteWheelSelector>();
     }
 
     [Fact]

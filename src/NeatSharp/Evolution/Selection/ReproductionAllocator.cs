@@ -36,15 +36,13 @@ public sealed class ReproductionAllocator
         var selection = _options.Selection;
 
         // Identify top 2 species by BestFitnessEver (protected from stagnation elimination)
-        var protectedIds = new HashSet<int>();
-        var sortedByPeak = species
+        // Use a list to preserve deterministic ordering (descending by BestFitnessEver)
+        var protectedIdsList = species
             .OrderByDescending(s => s.BestFitnessEver)
             .Take(2)
-            .Select(s => s.Id);
-        foreach (var id in sortedByPeak)
-        {
-            protectedIds.Add(id);
-        }
+            .Select(s => s.Id)
+            .ToList();
+        var protectedIds = new HashSet<int>(protectedIdsList);
 
         // Compute adjusted average fitness per species
         var adjustedAvg = new double[species.Count];
@@ -80,16 +78,14 @@ public sealed class ReproductionAllocator
                 result[s.Id] = 0;
             }
 
-            // Give equal share to protected species
-            if (protectedIds.Count > 0)
+            // Give equal share to protected species (iterate in deterministic order)
+            if (protectedIdsList.Count > 0)
             {
-                int perProtected = populationSize / protectedIds.Count;
-                int remainder = populationSize % protectedIds.Count;
-                bool first = true;
-                foreach (var id in protectedIds)
+                int perProtected = populationSize / protectedIdsList.Count;
+                int remainder = populationSize % protectedIdsList.Count;
+                for (int i = 0; i < protectedIdsList.Count; i++)
                 {
-                    result[id] = perProtected + (first ? remainder : 0);
-                    first = false;
+                    result[protectedIdsList[i]] = perProtected + (i < remainder ? 1 : 0);
                 }
             }
 
