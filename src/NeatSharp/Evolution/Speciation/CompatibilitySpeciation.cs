@@ -57,7 +57,7 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
             foreach (var s in species)
             {
                 double distance = _distanceCalculator.Compute(genome, s.Representative);
-                if (distance < threshold)
+                if (distance <= threshold)
                 {
                     s.Members.Add((genome, fitness));
                     assigned = true;

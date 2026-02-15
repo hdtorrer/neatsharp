@@ -36,4 +36,9 @@ internal static partial class TrainingLog
         Message = "Evaluation failed for genome at index {GenomeIndex}: {ExceptionMessage}")]
     public static partial void EvaluationFailed(
         ILogger logger, int genomeIndex, string exceptionMessage);
+
+    [LoggerMessage(EventId = 1007, Level = LogLevel.Warning,
+        Message = "Population extinct at generation {Generation}; stopping run")]
+    public static partial void PopulationExtinct(
+        ILogger logger, int generation);
 }

@@ -290,6 +290,13 @@ internal sealed class NeatEvolver : INeatEvolver
 
             reproSw?.Stop();
 
+            // Guard: if reproduction produced no offspring, the population is extinct
+            if (currentPopulation.Count == 0)
+            {
+                TrainingLog.PopulationExtinct(_logger, generation);
+                break;
+            }
+
             // Collect generation metrics
             if (enableMetrics)
             {
@@ -377,9 +384,14 @@ internal sealed class NeatEvolver : INeatEvolver
                 && speciesById.TryGetValue(sourceSpeciesId, out var parentSpecies)
                 && parentSpecies.Members.Count > 0)
             {
-                // Replace with un-mutated parent clone from the same species
-                var parent = parentSpecies.Members[0].Genome; // Champion (first by convention)
-                population.Add(parent);
+                // Replace with the species champion (highest fitness member)
+                var champion = parentSpecies.Members[0];
+                for (int i = 1; i < parentSpecies.Members.Count; i++)
+                {
+                    if (parentSpecies.Members[i].Fitness > champion.Fitness)
+                        champion = parentSpecies.Members[i];
+                }
+                population.Add(champion.Genome);
             }
             else
             {
