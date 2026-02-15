@@ -122,7 +122,6 @@ public class AddConnectionMutationTests
             var result = sut.Mutate(genome, random, tracker);
 
             // If a connection was added, verify it doesn't create a cycle
-            // by checking it can still build a feed-forward network
             if (result.Connections.Count > genome.Connections.Count)
             {
                 var newConn = result.Connections[^1];
@@ -130,8 +129,65 @@ public class AddConnectionMutationTests
                 var targetNode = result.Nodes.First(n => n.Id == newConn.TargetNodeId);
                 targetNode.Type.Should().NotBe(NodeType.Input);
                 targetNode.Type.Should().NotBe(NodeType.Bias);
+
+                // Verify no cycle exists in the resulting connection graph via DFS
+                HasCycle(result).Should().BeFalse(
+                    $"adding connection {newConn.SourceNodeId}->{newConn.TargetNodeId} should not create a cycle (seed={seed})");
             }
         }
+    }
+
+    /// <summary>
+    /// Detects cycles in a genome's enabled connection graph using DFS.
+    /// </summary>
+    private static bool HasCycle(Genome genome)
+    {
+        // Build adjacency list from enabled connections
+        var adjacency = new Dictionary<int, List<int>>();
+        foreach (var conn in genome.Connections)
+        {
+            if (!conn.IsEnabled) continue;
+            if (!adjacency.TryGetValue(conn.SourceNodeId, out var targets))
+            {
+                targets = [];
+                adjacency[conn.SourceNodeId] = targets;
+            }
+            targets.Add(conn.TargetNodeId);
+        }
+
+        // Standard three-color DFS cycle detection
+        var white = new HashSet<int>(genome.Nodes.Select(n => n.Id)); // unvisited
+        var gray = new HashSet<int>(); // in current path
+
+        while (white.Count > 0)
+        {
+            var start = white.First();
+            if (DfsHasCycle(start, adjacency, white, gray))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool DfsHasCycle(int node, Dictionary<int, List<int>> adjacency,
+        HashSet<int> white, HashSet<int> gray)
+    {
+        white.Remove(node);
+        gray.Add(node);
+
+        if (adjacency.TryGetValue(node, out var neighbors))
+        {
+            foreach (int neighbor in neighbors)
+            {
+                if (gray.Contains(neighbor))
+                    return true; // back edge → cycle
+                if (white.Contains(neighbor) && DfsHasCycle(neighbor, adjacency, white, gray))
+                    return true;
+            }
+        }
+
+        gray.Remove(node);
+        return false;
     }
 
     [Fact]

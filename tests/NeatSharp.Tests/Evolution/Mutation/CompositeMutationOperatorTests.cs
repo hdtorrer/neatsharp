@@ -109,11 +109,13 @@ public class CompositeMutationOperatorTests
             var tracker = new InnovationTracker(100, 100);
             var result = sut.Mutate(genome, random, tracker);
 
-            // All weights should change (perturbation applies to each connection)
+            result.Connections.Count.Should().Be(3, "structure unchanged");
+
+            // Each connection's weight should differ from the original 0.0
             for (int i = 0; i < result.Connections.Count; i++)
             {
-                // Each connection gets its own perturbation, so all should change
-                result.Connections.Count.Should().Be(3, "structure unchanged");
+                result.Connections[i].Weight.Should().NotBe(0.0,
+                    $"connection {i} should be perturbed (seed={seed})");
             }
         }
     }

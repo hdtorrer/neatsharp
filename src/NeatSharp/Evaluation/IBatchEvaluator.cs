@@ -26,6 +26,16 @@ public interface IBatchEvaluator
     /// </param>
     /// <param name="cancellationToken">Token to observe for cancellation.</param>
     /// <returns>A task that completes when all genomes have been evaluated.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>Error handling contract:</strong> If evaluation fails for a subset of genomes,
+    /// call <paramref name="setFitness"/> for all successfully evaluated genomes <em>before</em>
+    /// throwing. When <c>EvaluationErrorMode.AssignFitness</c> is configured, the training runner
+    /// assigns a default fitness to any genome whose score was not set via the callback.
+    /// If the method throws without calling <paramref name="setFitness"/> for any genome,
+    /// all genomes receive the default error fitness.
+    /// </para>
+    /// </remarks>
     Task EvaluateAsync(
         IReadOnlyList<IGenome> genomes,
         Action<int, double> setFitness,

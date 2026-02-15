@@ -197,7 +197,7 @@ public class ComplexityPenaltyTests
     {
         // Species 1: simple (2 nodes), fitness=10.0 → effective = 10 - 1*2 = 8.0
         // Species 2: complex (4 nodes), fitness=1.0 → effective = 1 - 1*4 = -3.0 (negative!)
-        // Negative effective fitness is not clamped, but species gets 0 offspring in allocation.
+        // Negative effective fitness is clamped to zero, so the species gets 0 offspring in allocation.
         var options = MakeOptions(coefficient: 1.0, ComplexityPenaltyMetric.NodeCount);
         var species = new List<Species>
         {
@@ -207,7 +207,7 @@ public class ComplexityPenaltyTests
 
         var sut = CreateSut(options);
 
-        // Should not throw — negative adjusted fitness is allowed (not clamped)
+        // Should not throw — negative adjusted fitness is clamped to zero
         var result = sut.AllocateOffspring(species, 100);
 
         result.Values.Sum().Should().Be(100,

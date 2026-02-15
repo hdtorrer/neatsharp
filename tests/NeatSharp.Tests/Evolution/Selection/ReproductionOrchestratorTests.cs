@@ -266,11 +266,7 @@ public class ReproductionOrchestratorTests
         options.PopulationSize = 200;
         options.Crossover.CrossoverRate = 0.75;
         options.Selection.ElitismThreshold = 100; // Disable elitism
-        // Disable mutations to observe crossover effects
-        options.Mutation.WeightPerturbationRate = 0.0;
-        options.Mutation.WeightReplacementRate = 0.0;
 
-        // Two species with different weights so we can distinguish parents
         var species1 = new Species(1, MakeGenome(1.0))
         {
             BestFitnessEver = 10.0,
@@ -291,24 +287,47 @@ public class ReproductionOrchestratorTests
             species2.Members.Add((MakeGenome(2.0), 10.0));
         }
 
-        // Run across multiple seeds and verify total offspring count
+        // Use a counting crossover spy to directly measure crossover invocations
         int totalOffspring = 0;
+        int totalCrossoverCalls = 0;
         for (int seed = 0; seed < 20; seed++)
         {
-            var sut = CreateSut(options);
+            var countingCrossover = new CountingCrossover(new NeatCrossover(Options.Create(options)));
+            var opts = Options.Create(options);
+            var sut = new ReproductionOrchestrator(
+                opts,
+                new TournamentSelector(opts),
+                countingCrossover,
+                CreateCompositeMutation(opts),
+                new ReproductionAllocator(opts));
             var random = new Random(seed);
             var tracker = new InnovationTracker(100, 100);
 
             var offspring = sut.Reproduce([species1, species2], random, tracker);
             totalOffspring += offspring.Count;
-
-            // In crossover with same-species parents of equal weight, offspring
-            // may look identical to parents. We can't perfectly distinguish here,
-            // but we verify total count is correct.
+            totalCrossoverCalls += countingCrossover.CallCount;
         }
 
-        // At minimum, verify total offspring count was always correct
-        totalOffspring.Should().Be(200 * 20);
+        totalOffspring.Should().Be(200 * 20, "total offspring count must be correct");
+
+        // With 75% crossover rate across 4000 offspring, expect ~3000 crossover calls.
+        // Allow a statistical margin (±10%).
+        double expectedRate = 0.75;
+        double actualRate = (double)totalCrossoverCalls / totalOffspring;
+        actualRate.Should().BeApproximately(expectedRate, 0.10,
+            "crossover should be invoked at approximately the configured rate");
+    }
+
+    private sealed class CountingCrossover(ICrossoverOperator inner) : ICrossoverOperator
+    {
+        public int CallCount { get; private set; }
+
+        public Genome Cross(Genome parent1, double parent1Fitness,
+            Genome parent2, double parent2Fitness, Random random)
+        {
+            CallCount++;
+            return inner.Cross(parent1, parent1Fitness, parent2, parent2Fitness, random);
+        }
     }
 
     #endregion

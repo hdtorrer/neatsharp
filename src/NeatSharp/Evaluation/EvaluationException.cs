@@ -6,7 +6,7 @@ namespace NeatSharp.Evaluation;
 /// that a single genome failure does not prevent evaluation of
 /// the remaining population.
 /// </summary>
-internal sealed class EvaluationException : Exception
+public sealed class EvaluationException : Exception
 {
     /// <summary>
     /// The individual genome failures, each with the genome index
@@ -15,7 +15,7 @@ internal sealed class EvaluationException : Exception
     public IReadOnlyList<(int Index, Exception Error)> Errors { get; }
 
     public EvaluationException(List<(int Index, Exception Error)> errors)
-        : base($"Evaluation failed for {errors.Count} genome(s)")
+        : base($"Evaluation failed for {errors.Count} genome(s)", errors[0].Error)
     {
         Errors = errors;
     }
