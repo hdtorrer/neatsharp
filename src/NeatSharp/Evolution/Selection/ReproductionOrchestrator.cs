@@ -145,13 +145,13 @@ public sealed class ReproductionOrchestrator
         if (species.Members.Count <= 1)
             return species.Members;
 
-        // Sort by fitness descending, take top fraction
+        // Stable sort descending by fitness, take top fraction
         var sorted = species.Members
             .OrderByDescending(m => m.Fitness)
             .ToList();
 
         int surviveCount = Math.Max(1, (int)Math.Ceiling(sorted.Count * survivalThreshold));
-        return sorted.Take(surviveCount).ToList();
+        return surviveCount >= sorted.Count ? sorted : sorted.GetRange(0, surviveCount);
     }
 
     private static Dictionary<Genome, double> BuildFitnessMap(
@@ -168,17 +168,30 @@ public sealed class ReproductionOrchestrator
     private static Species PickDifferentSpecies(
         IReadOnlyList<Species> allSpecies, Species current, Random random)
     {
-        // Build list of other species with members
-        var others = new List<Species>();
+        // Count eligible species (different from current, with members)
+        int eligibleCount = 0;
         foreach (var s in allSpecies)
         {
             if (s.Id != current.Id && s.Members.Count > 0)
-                others.Add(s);
+                eligibleCount++;
         }
 
-        if (others.Count == 0)
+        if (eligibleCount == 0)
             return current; // Fallback to same species
 
-        return others[random.Next(others.Count)];
+        // Pick a random index among eligible species and iterate to it
+        int target = random.Next(eligibleCount);
+        int seen = 0;
+        foreach (var s in allSpecies)
+        {
+            if (s.Id != current.Id && s.Members.Count > 0)
+            {
+                if (seen == target)
+                    return s;
+                seen++;
+            }
+        }
+
+        return current; // Unreachable, but satisfies compiler
     }
 }

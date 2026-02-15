@@ -80,6 +80,7 @@ internal sealed class NeatEvolver : INeatEvolver
         int completedGenerations = 0;
         bool wasCancelled = false;
         var fitness = new double[currentPopulation.Count];
+        var scored = new bool[currentPopulation.Count];
 
         // Generation loop
         while (true)
@@ -91,67 +92,12 @@ internal sealed class NeatEvolver : INeatEvolver
                 break;
             }
 
-            // === Evaluation phase (timed when metrics enabled) ===
+            // === Evaluation phase ===
             Stopwatch? evalSw = enableMetrics ? Stopwatch.StartNew() : null;
 
-            // Build phenotypes — genomes that can't be built (e.g., cycles) get a
-            // zero-output placeholder and will receive 0 fitness.
-            var phenotypes = new IGenome[currentPopulation.Count];
-            Array.Fill(fitness, 0.0);
-            for (int i = 0; i < currentPopulation.Count; i++)
-            {
-                try
-                {
-                    phenotypes[i] = _networkBuilder.Build(currentPopulation[i]);
-                }
-                catch (Exception)
-                {
-                    phenotypes[i] = ZeroOutputGenome.Instance;
-                    // fitness[i] already 0.0
-                }
-            }
-
-            // Evaluate — cancellation token is NOT passed to the evaluation strategy.
-            // The current generation always completes fully; cancellation is only
-            // checked at generation boundaries (top of this loop).
-            try
-            {
-                await evaluator.EvaluatePopulationAsync(
-                    phenotypes,
-                    (index, score) => fitness[index] = score,
-                    CancellationToken.None);
-            }
-            catch (EvaluationException evalEx)
-            {
-                // Per-genome failures collected by sequential adapters
-                if (evalErrorMode == EvaluationErrorMode.StopRun)
-                {
-                    throw;
-                }
-
-                // AssignFitness mode: assign configured default and log each failure
-                foreach (var (index, error) in evalEx.Errors)
-                {
-                    fitness[index] = evalErrorFitness;
-                    TrainingLog.EvaluationFailed(_logger, index, error.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Population-level failure (e.g., from BatchAdapter)
-                if (evalErrorMode == EvaluationErrorMode.StopRun)
-                {
-                    throw;
-                }
-
-                // AssignFitness mode: all unscored genomes keep pre-filled value
-                // Overwrite with configured default
-                for (int i = 0; i < fitness.Length; i++)
-                {
-                    fitness[i] = evalErrorFitness;
-                }
-                TrainingLog.EvaluationFailed(_logger, -1, ex.Message);
-            }
+            await EvaluatePopulationAsync(
+                evaluator, currentPopulation, fitness, scored,
+                evalErrorMode, evalErrorFitness);
 
             evalSw?.Stop();
 
@@ -166,52 +112,12 @@ internal sealed class NeatEvolver : INeatEvolver
                 TrainingLog.NewBestFitness(_logger, championGeneration, championFitness, prev);
             }
 
-            // === Speciation phase (timed when metrics enabled) ===
+            // === Speciation phase ===
             Stopwatch? specSw = enableMetrics ? Stopwatch.StartNew() : null;
 
-            var populationWithFitness = new List<(Genome Genome, double Fitness)>(currentPopulation.Count);
-            for (int i = 0; i < currentPopulation.Count; i++)
-            {
-                populationWithFitness.Add((currentPopulation[i], fitness[i]));
-            }
-
-            // Track species before speciation for extinction detection
-            var previousSpeciesIds = new HashSet<int>(species.Count);
-            foreach (var s in species)
-            {
-                previousSpeciesIds.Add(s.Id);
-            }
-
-            _speciationStrategy.Speciate(populationWithFitness, species);
+            SpeciateAndLog(currentPopulation, fitness, species, generation);
 
             specSw?.Stop();
-
-            // Detect extinct species
-            foreach (int prevId in previousSpeciesIds)
-            {
-                bool stillExists = false;
-                foreach (var s in species)
-                {
-                    if (s.Id == prevId)
-                    {
-                        stillExists = true;
-                        break;
-                    }
-                }
-                if (!stillExists)
-                {
-                    TrainingLog.SpeciesExtinct(_logger, prevId, generation);
-                }
-            }
-
-            // Log stagnation warnings
-            foreach (var s in species)
-            {
-                if (s.GenerationsSinceImprovement > _options.Selection.StagnationThreshold)
-                {
-                    TrainingLog.StagnationDetected(_logger, s.Id, s.GenerationsSinceImprovement);
-                }
-            }
 
             // Log generation completed
             double bestFitness = GetMaxFitness(fitness);
@@ -234,41 +140,7 @@ internal sealed class NeatEvolver : INeatEvolver
             }
 
             // Check stopping criteria
-            bool shouldStop = false;
-
-            // MaxGenerations
-            if (_options.Stopping.MaxGenerations.HasValue
-                && completedGenerations >= _options.Stopping.MaxGenerations.Value)
-            {
-                shouldStop = true;
-            }
-
-            // FitnessTarget
-            if (_options.Stopping.FitnessTarget.HasValue
-                && championFitness >= _options.Stopping.FitnessTarget.Value)
-            {
-                shouldStop = true;
-            }
-
-            // Run-level stagnation: all species simultaneously stagnant
-            if (_options.Stopping.StagnationThreshold.HasValue && species.Count > 0)
-            {
-                bool allStagnant = true;
-                foreach (var s in species)
-                {
-                    if (s.GenerationsSinceImprovement <= _options.Stopping.StagnationThreshold.Value)
-                    {
-                        allStagnant = false;
-                        break;
-                    }
-                }
-                if (allStagnant)
-                {
-                    shouldStop = true;
-                }
-            }
-
-            if (shouldStop)
+            if (ShouldStop(completedGenerations, championFitness, species))
             {
                 if (enableMetrics)
                 {
@@ -280,12 +152,10 @@ internal sealed class NeatEvolver : INeatEvolver
                 break;
             }
 
-            // === Reproduction phase (timed when metrics enabled) ===
+            // === Reproduction phase ===
             Stopwatch? reproSw = enableMetrics ? Stopwatch.StartNew() : null;
 
             var offspring = _reproductionOrchestrator.Reproduce(species, random, _tracker);
-
-            // Enforce complexity limits on offspring
             currentPopulation = EnforceComplexityLimits(offspring, species);
 
             reproSw?.Stop();
@@ -306,10 +176,11 @@ internal sealed class NeatEvolver : INeatEvolver
                     new TimingBreakdown(evalSw!.Elapsed, reproSw!.Elapsed, specSw!.Elapsed)));
             }
 
-            // Resize fitness array if needed
+            // Resize fitness/scored arrays if needed
             if (fitness.Length != currentPopulation.Count)
             {
                 fitness = new double[currentPopulation.Count];
+                scored = new bool[currentPopulation.Count];
             }
 
             // Advance generation
@@ -328,6 +199,176 @@ internal sealed class NeatEvolver : INeatEvolver
             result.Champion.Generation, wasCancelled);
 
         return result;
+    }
+
+    /// <summary>
+    /// Builds phenotypes from genomes, evaluates them via the evaluation strategy,
+    /// and handles per-genome and population-level evaluation failures.
+    /// </summary>
+    private async Task EvaluatePopulationAsync(
+        IEvaluationStrategy evaluator,
+        List<Genome> population,
+        double[] fitness,
+        bool[] scored,
+        EvaluationErrorMode errorMode,
+        double errorFitness)
+    {
+        // Build phenotypes — genomes that can't be built (e.g., cycles) get a
+        // zero-output placeholder and will receive 0 fitness.
+        var phenotypes = new IGenome[population.Count];
+        Array.Fill(fitness, 0.0);
+        for (int i = 0; i < population.Count; i++)
+        {
+            try
+            {
+                phenotypes[i] = _networkBuilder.Build(population[i]);
+            }
+            catch (Exception)
+            {
+                phenotypes[i] = ZeroOutputGenome.Instance;
+                // fitness[i] already 0.0
+            }
+        }
+
+        // Track which genomes have been scored by the evaluation callback.
+        // This allows the general Exception handler to preserve partial results
+        // from batch evaluators (per the IBatchEvaluator error contract).
+        if (scored.Length < population.Count)
+            scored = new bool[population.Count];
+        else
+            Array.Fill(scored, false);
+
+        // Evaluate — cancellation token is NOT passed to the evaluation strategy.
+        // The current generation always completes fully; cancellation is only
+        // checked at generation boundaries.
+        try
+        {
+            await evaluator.EvaluatePopulationAsync(
+                phenotypes,
+                (index, score) =>
+                {
+                    fitness[index] = score;
+                    scored[index] = true;
+                },
+                CancellationToken.None);
+        }
+        catch (EvaluationException evalEx)
+        {
+            // Per-genome failures collected by sequential adapters
+            if (errorMode == EvaluationErrorMode.StopRun)
+            {
+                throw;
+            }
+
+            // AssignFitness mode: assign configured default and log each failure
+            foreach (var (index, error) in evalEx.Errors)
+            {
+                fitness[index] = errorFitness;
+                TrainingLog.EvaluationFailed(_logger, index, error.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Population-level failure (e.g., from BatchAdapter).
+            if (errorMode == EvaluationErrorMode.StopRun)
+            {
+                throw;
+            }
+
+            // AssignFitness mode: preserve fitness for genomes that were
+            // already scored via the callback; assign default to the rest.
+            for (int i = 0; i < fitness.Length; i++)
+            {
+                if (!scored[i])
+                    fitness[i] = errorFitness;
+            }
+            TrainingLog.EvaluationFailed(_logger, -1, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Assigns genomes to species, detects extinct species, and logs stagnation warnings.
+    /// </summary>
+    private void SpeciateAndLog(
+        List<Genome> population,
+        double[] fitness,
+        List<Species> species,
+        int generation)
+    {
+        var populationWithFitness = new List<(Genome Genome, double Fitness)>(population.Count);
+        for (int i = 0; i < population.Count; i++)
+        {
+            populationWithFitness.Add((population[i], fitness[i]));
+        }
+
+        // Track species before speciation for extinction detection
+        var previousSpeciesIds = new HashSet<int>(species.Count);
+        foreach (var s in species)
+        {
+            previousSpeciesIds.Add(s.Id);
+        }
+
+        _speciationStrategy.Speciate(populationWithFitness, species);
+
+        // Detect extinct species via HashSet lookup — O(prev + current)
+        var currentSpeciesIds = new HashSet<int>(species.Count);
+        foreach (var s in species)
+            currentSpeciesIds.Add(s.Id);
+
+        foreach (int prevId in previousSpeciesIds)
+        {
+            if (!currentSpeciesIds.Contains(prevId))
+                TrainingLog.SpeciesExtinct(_logger, prevId, generation);
+        }
+
+        // Log stagnation warnings
+        foreach (var s in species)
+        {
+            if (s.GenerationsSinceImprovement > _options.Selection.StagnationThreshold)
+            {
+                TrainingLog.StagnationDetected(_logger, s.Id, s.GenerationsSinceImprovement);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks whether any stopping criterion has been met.
+    /// </summary>
+    private bool ShouldStop(int completedGenerations, double championFitness, List<Species> species)
+    {
+        // MaxGenerations
+        if (_options.Stopping.MaxGenerations.HasValue
+            && completedGenerations >= _options.Stopping.MaxGenerations.Value)
+        {
+            return true;
+        }
+
+        // FitnessTarget
+        if (_options.Stopping.FitnessTarget.HasValue
+            && championFitness >= _options.Stopping.FitnessTarget.Value)
+        {
+            return true;
+        }
+
+        // Run-level stagnation: all species simultaneously stagnant
+        if (_options.Stopping.StagnationThreshold.HasValue && species.Count > 0)
+        {
+            bool allStagnant = true;
+            foreach (var s in species)
+            {
+                if (s.GenerationsSinceImprovement <= _options.Stopping.StagnationThreshold.Value)
+                {
+                    allStagnant = false;
+                    break;
+                }
+            }
+            if (allStagnant)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void UpdateChampion(
