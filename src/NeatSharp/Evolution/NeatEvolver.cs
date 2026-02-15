@@ -66,6 +66,10 @@ internal sealed class NeatEvolver : INeatEvolver
         bool enableMetrics = _options.EnableMetrics;
         List<GenerationStatistics>? generationHistory = enableMetrics ? [] : null;
 
+        // Error handling config
+        var evalErrorMode = _options.Evaluation.ErrorMode;
+        double evalErrorFitness = _options.Evaluation.ErrorFitnessValue;
+
         // State
         var currentPopulation = new List<Genome>(population);
         var species = new List<Species>();
@@ -107,26 +111,45 @@ internal sealed class NeatEvolver : INeatEvolver
                 }
             }
 
-            // Evaluate
+            // Evaluate — cancellation token is NOT passed to the evaluation strategy.
+            // The current generation always completes fully; cancellation is only
+            // checked at generation boundaries (top of this loop).
             try
             {
                 await evaluator.EvaluatePopulationAsync(
                     phenotypes,
                     (index, score) => fitness[index] = score,
-                    cancellationToken);
+                    CancellationToken.None);
             }
-            catch (OperationCanceledException)
+            catch (EvaluationException evalEx)
             {
-                evalSw?.Stop();
-                wasCancelled = true;
-                // Track champion from any fitness assigned so far
-                UpdateChampion(currentPopulation, fitness, generation,
-                    ref championGenome, ref championFitness, ref championGeneration);
-                break;
+                // Per-genome failures collected by sequential adapters
+                if (evalErrorMode == EvaluationErrorMode.StopRun)
+                {
+                    throw;
+                }
+
+                // AssignFitness mode: assign configured default and log each failure
+                foreach (var (index, error) in evalEx.Errors)
+                {
+                    fitness[index] = evalErrorFitness;
+                    TrainingLog.EvaluationFailed(_logger, index, error.Message);
+                }
             }
             catch (Exception ex)
             {
-                // Evaluation failure: all genomes keep 0 fitness (already set)
+                // Population-level failure (e.g., from BatchAdapter)
+                if (evalErrorMode == EvaluationErrorMode.StopRun)
+                {
+                    throw;
+                }
+
+                // AssignFitness mode: all unscored genomes keep pre-filled value
+                // Overwrite with configured default
+                for (int i = 0; i < fitness.Length; i++)
+                {
+                    fitness[i] = evalErrorFitness;
+                }
                 TrainingLog.EvaluationFailed(_logger, -1, ex.Message);
             }
 
@@ -263,7 +286,7 @@ internal sealed class NeatEvolver : INeatEvolver
             var offspring = _reproductionOrchestrator.Reproduce(species, random, _tracker);
 
             // Enforce complexity limits on offspring
-            currentPopulation = EnforceComplexityLimits(offspring, species, random);
+            currentPopulation = EnforceComplexityLimits(offspring, species);
 
             reproSw?.Stop();
 
@@ -320,20 +343,29 @@ internal sealed class NeatEvolver : INeatEvolver
     }
 
     private List<Genome> EnforceComplexityLimits(
-        IReadOnlyList<Genome> offspring,
-        List<Species> species,
-        Random random)
+        IReadOnlyList<(Genome Offspring, int SourceSpeciesId)> offspring,
+        List<Species> species)
     {
         int? maxNodes = _options.Complexity.MaxNodes;
         int? maxConnections = _options.Complexity.MaxConnections;
 
         if (maxNodes is null && maxConnections is null)
         {
-            return new List<Genome>(offspring);
+            var result = new List<Genome>(offspring.Count);
+            foreach (var (genome, _) in offspring)
+                result.Add(genome);
+            return result;
         }
 
-        var result = new List<Genome>(offspring.Count);
-        foreach (var genome in offspring)
+        // Build species lookup for same-species replacement
+        var speciesById = new Dictionary<int, Species>(species.Count);
+        foreach (var s in species)
+        {
+            speciesById[s.Id] = s;
+        }
+
+        var population = new List<Genome>(offspring.Count);
+        foreach (var (genome, sourceSpeciesId) in offspring)
         {
             bool overLimit = false;
             if (maxNodes.HasValue && genome.Nodes.Count > maxNodes.Value)
@@ -341,27 +373,21 @@ internal sealed class NeatEvolver : INeatEvolver
             if (maxConnections.HasValue && genome.Connections.Count > maxConnections.Value)
                 overLimit = true;
 
-            if (overLimit && species.Count > 0)
+            if (overLimit
+                && speciesById.TryGetValue(sourceSpeciesId, out var parentSpecies)
+                && parentSpecies.Members.Count > 0)
             {
-                // Replace with un-mutated parent clone from a random species
-                var parentSpecies = species[random.Next(species.Count)];
-                if (parentSpecies.Members.Count > 0)
-                {
-                    var parent = parentSpecies.Members[random.Next(parentSpecies.Members.Count)].Genome;
-                    result.Add(parent);
-                }
-                else
-                {
-                    result.Add(genome); // Fallback: keep the genome
-                }
+                // Replace with un-mutated parent clone from the same species
+                var parent = parentSpecies.Members[0].Genome; // Champion (first by convention)
+                population.Add(parent);
             }
             else
             {
-                result.Add(genome);
+                population.Add(genome);
             }
         }
 
-        return result;
+        return population;
     }
 
     private EvolutionResult BuildResult(

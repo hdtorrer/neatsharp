@@ -174,7 +174,7 @@ public class ReproductionOrchestratorTests
         var offspring = sut.Reproduce([species1], random, tracker);
 
         // The champion should be in offspring unchanged
-        offspring.Should().Contain(champion,
+        offspring.Should().Contain(o => o.Offspring == champion,
             "elite champion should be copied to next generation unchanged");
     }
 
@@ -207,7 +207,7 @@ public class ReproductionOrchestratorTests
         var offspring = sut.Reproduce([species1], random, tracker);
 
         // No elite champion — all offspring should be mutated (different from champion)
-        offspring.Should().NotContain(champion,
+        offspring.Should().NotContain(o => o.Offspring == champion,
             "species below elitism threshold should not preserve champion unchanged");
     }
 
@@ -248,7 +248,7 @@ public class ReproductionOrchestratorTests
         // All offspring should come from the top 50% of parents (fitness >= 6.0)
         // Since no mutation and clone-only, offspring weights should match top-half parent weights
         var bottomHalfWeights = new HashSet<double> { 1.0, 2.0, 3.0, 4.0, 5.0 };
-        foreach (var genome in offspring)
+        foreach (var (genome, _) in offspring)
         {
             bottomHalfWeights.Should().NotContain(genome.Connections[0].Weight,
                 "offspring should only come from top SurvivalThreshold fraction of parents");
@@ -354,7 +354,7 @@ public class ReproductionOrchestratorTests
         // With interspecies=1.0 and crossover=1.0, second parent always from different species.
         // Crossover between genomes with weight=1.0 and weight=5.0 should produce offspring
         // with weight from either parent (matching gene 50/50 inheritance)
-        foreach (var g in offspring)
+        foreach (var (g, _) in offspring)
         {
             double w = g.Connections[0].Weight;
             // Weight should be 1.0 or 5.0 (from either parent via matching gene 50/50)
@@ -428,8 +428,8 @@ public class ReproductionOrchestratorTests
         offspring.Should().HaveCount(10);
 
         // 1 champion (weight=0.0 unchanged) + 9 mutated (weight != 0.0)
-        int unchangedCount = offspring.Count(g => g.Connections[0].Weight == 0.0);
-        int mutatedCount = offspring.Count(g => g.Connections[0].Weight != 0.0);
+        int unchangedCount = offspring.Count(o => o.Offspring.Connections[0].Weight == 0.0);
+        int mutatedCount = offspring.Count(o => o.Offspring.Connections[0].Weight != 0.0);
 
         unchangedCount.Should().Be(1, "exactly one champion should be preserved unchanged");
         mutatedCount.Should().Be(9, "all non-elite offspring should be mutated");
@@ -466,11 +466,11 @@ public class ReproductionOrchestratorTests
         result1.Should().HaveCount(result2.Count);
         for (int i = 0; i < result1.Count; i++)
         {
-            result1[i].Nodes.Count.Should().Be(result2[i].Nodes.Count);
-            result1[i].Connections.Count.Should().Be(result2[i].Connections.Count);
-            for (int j = 0; j < result1[i].Connections.Count; j++)
+            result1[i].Offspring.Nodes.Count.Should().Be(result2[i].Offspring.Nodes.Count);
+            result1[i].Offspring.Connections.Count.Should().Be(result2[i].Offspring.Connections.Count);
+            for (int j = 0; j < result1[i].Offspring.Connections.Count; j++)
             {
-                result1[i].Connections[j].Should().Be(result2[i].Connections[j]);
+                result1[i].Offspring.Connections[j].Should().Be(result2[i].Offspring.Connections[j]);
             }
         }
     }
@@ -495,8 +495,8 @@ public class ReproductionOrchestratorTests
 
             for (int i = 0; i < Math.Min(r1.Count, r2.Count); i++)
             {
-                if (r1[i].Connections.Count > 0 && r2[i].Connections.Count > 0 &&
-                    Math.Abs(r1[i].Connections[0].Weight - r2[i].Connections[0].Weight) > 1e-10)
+                if (r1[i].Offspring.Connections.Count > 0 && r2[i].Offspring.Connections.Count > 0 &&
+                    Math.Abs(r1[i].Offspring.Connections[0].Weight - r2[i].Offspring.Connections[0].Weight) > 1e-10)
                 {
                     foundDifference = true;
                     break;

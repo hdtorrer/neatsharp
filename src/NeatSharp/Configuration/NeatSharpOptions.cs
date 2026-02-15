@@ -87,4 +87,11 @@ public class NeatSharpOptions
     /// Disabled by default (Coefficient = 0.0).
     /// </summary>
     public ComplexityPenaltyOptions ComplexityPenalty { get; set; } = new();
+
+    /// <summary>
+    /// Controls how the evaluation phase handles errors during genome
+    /// fitness evaluation. Default behavior assigns fitness 0.0 to
+    /// failing genomes and continues the run.
+    /// </summary>
+    public EvaluationOptions Evaluation { get; set; } = new();
 }

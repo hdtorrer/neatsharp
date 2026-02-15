@@ -80,11 +80,29 @@ public static class EvaluationStrategy
             Action<int, double> setFitness,
             CancellationToken cancellationToken)
         {
+            List<(int Index, Exception Error)>? errors = null;
+
             for (int i = 0; i < genomes.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var fitness = fitnessFunction(genomes[i]);
-                setFitness(i, fitness);
+                try
+                {
+                    var fitness = fitnessFunction(genomes[i]);
+                    setFitness(i, fitness);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    (errors ??= []).Add((i, ex));
+                }
+            }
+
+            if (errors is { Count: > 0 })
+            {
+                throw new EvaluationException(errors);
             }
 
             return Task.CompletedTask;
@@ -98,11 +116,29 @@ public static class EvaluationStrategy
             Action<int, double> setFitness,
             CancellationToken cancellationToken)
         {
+            List<(int Index, Exception Error)>? errors = null;
+
             for (int i = 0; i < genomes.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var fitness = await fitnessFunction(genomes[i], cancellationToken);
-                setFitness(i, fitness);
+                try
+                {
+                    var fitness = await fitnessFunction(genomes[i], cancellationToken);
+                    setFitness(i, fitness);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    (errors ??= []).Add((i, ex));
+                }
+            }
+
+            if (errors is { Count: > 0 })
+            {
+                throw new EvaluationException(errors);
             }
         }
     }
@@ -114,11 +150,29 @@ public static class EvaluationStrategy
             Action<int, double> setFitness,
             CancellationToken cancellationToken)
         {
+            List<(int Index, Exception Error)>? errors = null;
+
             for (int i = 0; i < genomes.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var fitness = await evaluator.EvaluateAsync(genomes[i], cancellationToken);
-                setFitness(i, fitness);
+                try
+                {
+                    var fitness = await evaluator.EvaluateAsync(genomes[i], cancellationToken);
+                    setFitness(i, fitness);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    (errors ??= []).Add((i, ex));
+                }
+            }
+
+            if (errors is { Count: > 0 })
+            {
+                throw new EvaluationException(errors);
             }
         }
     }
