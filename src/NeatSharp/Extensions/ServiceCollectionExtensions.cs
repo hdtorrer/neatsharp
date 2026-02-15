@@ -212,6 +212,12 @@ public static class ServiceCollectionExtensions
                 (failures ??= []).Add("ComplexityPenalty.Coefficient must be greater than or equal to 0.");
             }
 
+            // EvaluationOptions validation
+            if (!double.IsFinite(options.Evaluation.ErrorFitnessValue) || options.Evaluation.ErrorFitnessValue < 0.0)
+            {
+                (failures ??= []).Add("Evaluation.ErrorFitnessValue must be a finite, non-negative value.");
+            }
+
             return failures is { Count: > 0 }
                 ? ValidateOptionsResult.Fail(failures)
                 : ValidateOptionsResult.Success;

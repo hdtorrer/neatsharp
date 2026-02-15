@@ -854,6 +854,145 @@ public class NeatEvolverTests
 
     #endregion
 
+    #region Configurable Evaluation Error Handling
+
+    [Fact]
+    public async Task RunAsync_AssignFitnessMode_PerGenomeFailures_AssignsDefaultAndContinues()
+    {
+        // Arrange: first genome always throws, rest succeed
+        int evalCount = 0;
+        var options = DefaultOptions(o =>
+        {
+            o.Stopping.MaxGenerations = 3;
+            o.Evaluation.ErrorMode = EvaluationErrorMode.AssignFitness;
+            o.Evaluation.ErrorFitnessValue = 0.0;
+        });
+        var evolver = CreateEvolver(options);
+
+        var strategy = EvaluationStrategy.FromFunction(genome =>
+        {
+            int count = Interlocked.Increment(ref evalCount);
+            if (count % options.PopulationSize == 1) // First genome each generation
+                throw new InvalidOperationException("Simulated failure");
+            return 1.0;
+        });
+
+        // Act
+        var result = await evolver.RunAsync(strategy);
+
+        // Assert: run completes, non-failing genomes get real fitness
+        result.History.TotalGenerations.Should().Be(3);
+        result.Champion.Fitness.Should().Be(1.0,
+            "non-failing genomes should retain their real fitness scores");
+    }
+
+    [Fact]
+    public async Task RunAsync_AssignFitnessMode_CustomErrorFitnessValue()
+    {
+        // Arrange: all genomes throw, custom error fitness = 0.5
+        var options = DefaultOptions(o =>
+        {
+            o.Stopping.MaxGenerations = 1;
+            o.Evaluation.ErrorMode = EvaluationErrorMode.AssignFitness;
+            o.Evaluation.ErrorFitnessValue = 0.5;
+        });
+        var evolver = CreateEvolver(options);
+
+        var strategy = EvaluationStrategy.FromFunction(
+            (IGenome _) => throw new InvalidOperationException("Always fails"));
+
+        // Act
+        var result = await evolver.RunAsync(strategy);
+
+        // Assert: all genomes get custom error fitness
+        result.Champion.Fitness.Should().Be(0.5);
+    }
+
+    [Fact]
+    public async Task RunAsync_StopRunMode_ThrowsOnEvaluationError()
+    {
+        // Arrange
+        var options = DefaultOptions(o =>
+        {
+            o.Stopping.MaxGenerations = 10;
+            o.Evaluation.ErrorMode = EvaluationErrorMode.StopRun;
+        });
+        var evolver = CreateEvolver(options);
+
+        var strategy = EvaluationStrategy.FromFunction(
+            (IGenome _) => throw new InvalidOperationException("Simulated failure"));
+
+        // Act & Assert: should propagate the exception
+        await Assert.ThrowsAsync<EvaluationException>(
+            () => evolver.RunAsync(strategy));
+    }
+
+    [Fact]
+    public async Task RunAsync_AssignFitnessMode_LogsPerGenomeEvaluationFailed()
+    {
+        // Arrange
+        int evalCount = 0;
+        var options = DefaultOptions(o =>
+        {
+            o.Stopping.MaxGenerations = 1;
+            o.Evaluation.ErrorMode = EvaluationErrorMode.AssignFitness;
+        });
+        var logger = new CapturingLogger();
+        var evolver = CreateEvolver(options, logger: logger);
+
+        var strategy = EvaluationStrategy.FromFunction(genome =>
+        {
+            int count = Interlocked.Increment(ref evalCount);
+            if (count == 3) throw new InvalidOperationException("Genome 2 failed");
+            return 1.0;
+        });
+
+        // Act
+        await evolver.RunAsync(strategy);
+
+        // Assert: EvaluationFailed (1006) should be logged with specific genome index
+        var evalFailedEntries = logger.LogEntries.Where(e => e.EventId.Id == 1006).ToList();
+        evalFailedEntries.Should().HaveCount(1);
+        evalFailedEntries[0].Message.Should().Contain("2",
+            "log should reference the specific genome index that failed");
+    }
+
+    #endregion
+
+    #region Cancellation at Generation Boundaries
+
+    [Fact]
+    public async Task RunAsync_CancellationDuringEvaluation_CompletesCurrentGeneration()
+    {
+        // Arrange: cancel during the second generation's evaluation
+        var options = DefaultOptions(o => o.Stopping.MaxGenerations = 100);
+        var evolver = CreateEvolver(options);
+        using var cts = new CancellationTokenSource();
+
+        int evalCount = 0;
+        var strategy = EvaluationStrategy.FromFunction(genome =>
+        {
+            int count = Interlocked.Increment(ref evalCount);
+            // Cancel during second generation (after ~PopulationSize evals)
+            if (count > options.PopulationSize + 5)
+            {
+                cts.Cancel();
+            }
+            return 1.0;
+        });
+
+        // Act
+        var result = await evolver.RunAsync(strategy, cts.Token);
+
+        // Assert: cancellation was detected AFTER the current generation completed
+        result.WasCancelled.Should().BeTrue();
+        // At least 2 generations should have completed (the one during which cancel was signaled)
+        result.History.TotalGenerations.Should().BeGreaterThanOrEqualTo(2,
+            "the generation during which cancellation was requested should complete fully");
+    }
+
+    #endregion
+
     #region T014 — Batch Evaluator Integration Tests
 
     [Fact]

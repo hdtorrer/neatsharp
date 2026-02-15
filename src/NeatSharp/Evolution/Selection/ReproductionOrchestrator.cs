@@ -36,17 +36,20 @@ public sealed class ReproductionOrchestrator
 
     /// <summary>
     /// Produces the next generation of genomes from the current species.
+    /// Each offspring is tagged with its source species ID so that
+    /// complexity-limit enforcement can replace over-limit genomes
+    /// with parents from the same species.
     /// </summary>
     /// <param name="species">The current species with assigned members and fitness data.</param>
     /// <param name="random">Seeded RNG for deterministic behavior.</param>
     /// <param name="tracker">Innovation tracker for structural mutations.</param>
-    /// <returns>A list of offspring genomes for the next generation.</returns>
-    public IReadOnlyList<Genome> Reproduce(
+    /// <returns>A list of offspring genomes paired with their source species ID.</returns>
+    public IReadOnlyList<(Genome Offspring, int SourceSpeciesId)> Reproduce(
         IReadOnlyList<Species> species,
         Random random,
         IInnovationTracker tracker)
     {
-        var offspring = new List<Genome>();
+        var offspring = new List<(Genome, int)>();
 
         if (species.Count == 0)
             return offspring;
@@ -66,7 +69,7 @@ public sealed class ReproductionOrchestrator
             if (s.Members.Count >= selectionOptions.ElitismThreshold && remaining > 0)
             {
                 var champion = GetChampion(s);
-                offspring.Add(champion);
+                offspring.Add((champion, s.Id));
                 remaining--;
             }
 
@@ -118,7 +121,7 @@ public sealed class ReproductionOrchestrator
 
                 // Mutate all non-elite offspring
                 child = _mutationOperator.Mutate(child, random, tracker);
-                offspring.Add(child);
+                offspring.Add((child, s.Id));
             }
         }
 
