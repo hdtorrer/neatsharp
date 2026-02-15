@@ -13,6 +13,7 @@ namespace NeatSharp.Reporting;
 /// <param name="BestFitness">Highest fitness in this generation.</param>
 /// <param name="AverageFitness">Mean fitness across the population.</param>
 /// <param name="SpeciesCount">Number of species.</param>
+/// <param name="SpeciesSizes">Member count per species, ordered by species.</param>
 /// <param name="Complexity">Complexity measures for this generation.</param>
 /// <param name="Timing">Per-phase timing measures.</param>
 public record GenerationStatistics(
@@ -20,5 +21,6 @@ public record GenerationStatistics(
     double BestFitness,
     double AverageFitness,
     int SpeciesCount,
+    IReadOnlyList<int> SpeciesSizes,
     ComplexityStatistics Complexity,
     TimingBreakdown Timing);

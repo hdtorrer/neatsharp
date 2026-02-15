@@ -15,7 +15,7 @@ public class QuickstartValidationTests
 {
     /// <summary>
     /// Quickstart Sample 1: Build a Simple Genome and Run Inference.
-    /// 2 inputs + 1 bias + 1 output, verify sigmoid(0.6) ≈ 0.6457.
+    /// 2 inputs + 1 bias + 1 output, verify sigmoid(0.6).
     /// </summary>
     [Fact]
     public void Sample1_SimpleGenomeInference_ProducesExpectedOutput()
@@ -54,8 +54,8 @@ public class QuickstartValidationTests
         Span<double> outputs = stackalloc double[1];
         network.Activate(inputs, outputs);
 
-        // Output: sigmoid(1.0*0.5 + 0.5*0.8 + 1.0*(-0.3)) = sigmoid(0.6) ≈ 0.6457
-        double expected = 1.0 / (1.0 + Math.Exp(-0.6));
+        // Output: sigmoid(1.0*0.5 + 0.5*0.8 + 1.0*(-0.3)) = sigmoid(0.6)
+        double expected = ActivationFunctions.SigmoidFunction(0.6);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -96,8 +96,8 @@ public class QuickstartValidationTests
 
         // Hidden node: tanh(1.0*1.0 + 0.0*(-1.0) + 1.0*0.0) = tanh(1.0) ≈ 0.7616
         double hiddenValue = Math.Tanh(1.0);
-        // Output node: sigmoid(0.7616*1.0) ≈ 0.6819
-        double expected = 1.0 / (1.0 + Math.Exp(-hiddenValue));
+        // Output node: sigmoid(tanh(1.0))
+        double expected = ActivationFunctions.SigmoidFunction(hiddenValue);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -135,8 +135,8 @@ public class QuickstartValidationTests
         network.Activate([1.0, 0.5], outputs);
 
         // Only connections 1 and 3 contribute; connection 2 is ignored
-        // sigmoid(1.0*0.5 + 1.0*(-0.3)) = sigmoid(0.2) ≈ 0.5498
-        double expected = 1.0 / (1.0 + Math.Exp(-0.2));
+        // sigmoid(1.0*0.5 + 1.0*(-0.3)) = sigmoid(0.2)
+        double expected = ActivationFunctions.SigmoidFunction(0.2);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -148,7 +148,7 @@ public class QuickstartValidationTests
     public void Sample4_InnovationTracking_DeterministicDeduplication()
     {
         var services = new ServiceCollection();
-        services.AddNeatSharp();
+        services.AddNeatSharp(options => options.Stopping.MaxGenerations = 100);
         var provider = services.BuildServiceProvider();
 
         using var scope = provider.CreateScope();
@@ -331,11 +331,11 @@ public class QuickstartValidationTests
         result11.Should().NotBe(firstResult00);
 
         // Verify [0,0] result: sigmoid(0*0.5 + 0*0.8 + 1.0*(-0.3)) = sigmoid(-0.3)
-        double expected00 = 1.0 / (1.0 + Math.Exp(0.3));
+        double expected00 = ActivationFunctions.SigmoidFunction(-0.3);
         firstResult00.Should().BeApproximately(expected00, 1e-10);
 
         // Verify [1,1] result: sigmoid(1.0*0.5 + 1.0*0.8 + 1.0*(-0.3)) = sigmoid(1.0)
-        double expected11 = 1.0 / (1.0 + Math.Exp(-1.0));
+        double expected11 = ActivationFunctions.SigmoidFunction(1.0);
         result11.Should().BeApproximately(expected11, 1e-10);
     }
 }

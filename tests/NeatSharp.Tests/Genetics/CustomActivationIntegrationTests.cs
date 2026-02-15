@@ -41,9 +41,9 @@ public class CustomActivationIntegrationTests
         network.Activate([-2.0], outputs);
 
         // Assert: hidden = leaky_relu(-2.0) = 0.01 * -2.0 = -0.02
-        //         output = sigmoid(-0.02) = 1/(1+exp(0.02))
+        //         output = sigmoid(-0.02)
         double hiddenValue = 0.01 * -2.0; // -0.02
-        double expected = 1.0 / (1.0 + Math.Exp(-hiddenValue));
+        double expected = ActivationFunctions.SigmoidFunction(hiddenValue);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -76,7 +76,7 @@ public class CustomActivationIntegrationTests
 
         // hidden = leaky_relu(3.0) = 3.0 (positive branch)
         // output = sigmoid(3.0)
-        double expected = 1.0 / (1.0 + Math.Exp(-3.0));
+        double expected = ActivationFunctions.SigmoidFunction(3.0);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -155,8 +155,8 @@ public class CustomActivationIntegrationTests
         network.Activate([2.0], outputs);
 
         // hidden = sigmoid(2.0), output = sigmoid(sigmoid(2.0))
-        double hiddenValue = 1.0 / (1.0 + Math.Exp(-2.0));
-        double expected = 1.0 / (1.0 + Math.Exp(-hiddenValue));
+        double hiddenValue = ActivationFunctions.SigmoidFunction(2.0);
+        double expected = ActivationFunctions.SigmoidFunction(hiddenValue);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 

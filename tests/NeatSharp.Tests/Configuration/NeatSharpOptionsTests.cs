@@ -10,6 +10,22 @@ namespace NeatSharp.Tests.Configuration;
 public class NeatSharpOptionsTests
 {
     [Fact]
+    public void Defaults_InputCount_Is2()
+    {
+        var options = new NeatSharpOptions();
+
+        options.InputCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Defaults_OutputCount_Is1()
+    {
+        var options = new NeatSharpOptions();
+
+        options.OutputCount.Should().Be(1);
+    }
+
+    [Fact]
     public void Defaults_PopulationSize_Is150()
     {
         var options = new NeatSharpOptions();
@@ -93,6 +109,106 @@ public class NeatSharpOptionsTests
     public void Validation_PopulationSizeExceedsMax_Fails()
     {
         var act = () => BuildAndValidate(o => o.PopulationSize = 100_001);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    // --- Validation: InputCount ---
+
+    [Fact]
+    public void Validation_InputCountZero_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.InputCount = 0);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void Validation_InputCountNegative_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.InputCount = -1);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void Validation_InputCountOne_Succeeds()
+    {
+        var act = () => BuildAndValidate(o =>
+        {
+            o.InputCount = 1;
+            o.Stopping.MaxGenerations = 100;
+        });
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Validation_InputCount10000_Succeeds()
+    {
+        var act = () => BuildAndValidate(o =>
+        {
+            o.InputCount = 10_000;
+            o.Stopping.MaxGenerations = 100;
+        });
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Validation_InputCountExceedsMax_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.InputCount = 10_001);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    // --- Validation: OutputCount ---
+
+    [Fact]
+    public void Validation_OutputCountZero_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.OutputCount = 0);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void Validation_OutputCountNegative_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.OutputCount = -1);
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void Validation_OutputCountOne_Succeeds()
+    {
+        var act = () => BuildAndValidate(o =>
+        {
+            o.OutputCount = 1;
+            o.Stopping.MaxGenerations = 100;
+        });
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Validation_OutputCount10000_Succeeds()
+    {
+        var act = () => BuildAndValidate(o =>
+        {
+            o.OutputCount = 10_000;
+            o.Stopping.MaxGenerations = 100;
+        });
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Validation_OutputCountExceedsMax_Fails()
+    {
+        var act = () => BuildAndValidate(o => o.OutputCount = 10_001);
 
         act.Should().Throw<OptionsValidationException>();
     }

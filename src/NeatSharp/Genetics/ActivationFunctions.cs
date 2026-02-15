@@ -23,8 +23,13 @@ public static class ActivationFunctions
     /// <summary>Identity function: x (passthrough).</summary>
     public const string Identity = "identity";
 
-    /// <summary>Computes the sigmoid function: 1 / (1 + e^(-x)).</summary>
-    public static double SigmoidFunction(double x) => 1.0 / (1.0 + Math.Exp(-x));
+    /// <summary>
+    /// Computes the steepened sigmoid function: 1 / (1 + e^(-4.9x)).
+    /// The slope of 4.9 matches the canonical NEAT implementation and
+    /// produces sharper binary outputs, enabling faster convergence on
+    /// discrete classification problems like XOR.
+    /// </summary>
+    public static double SigmoidFunction(double x) => 1.0 / (1.0 + Math.Exp(-4.9 * x));
 
     /// <summary>Computes the hyperbolic tangent function.</summary>
     public static double TanhFunction(double x) => Math.Tanh(x);

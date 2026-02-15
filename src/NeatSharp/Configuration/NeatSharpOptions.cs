@@ -9,6 +9,22 @@ namespace NeatSharp.Configuration;
 public class NeatSharpOptions
 {
     /// <summary>
+    /// Number of input nodes per genome. Determines the initial
+    /// network topology alongside <see cref="OutputCount"/>.
+    /// Must be between 1 and 10,000. Default is 2.
+    /// </summary>
+    [Range(1, 10_000)]
+    public int InputCount { get; set; } = 2;
+
+    /// <summary>
+    /// Number of output nodes per genome. Determines the initial
+    /// network topology alongside <see cref="InputCount"/>.
+    /// Must be between 1 and 10,000. Default is 1.
+    /// </summary>
+    [Range(1, 10_000)]
+    public int OutputCount { get; set; } = 1;
+
+    /// <summary>
     /// Number of genomes in each generation's population.
     /// Must be between 1 and 100,000. Default is 150.
     /// </summary>
