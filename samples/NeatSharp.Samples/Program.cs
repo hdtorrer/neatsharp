@@ -34,7 +34,7 @@ static async Task RunXor()
     });
     services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
 
-    var provider = services.BuildServiceProvider();
+    using var provider = services.BuildServiceProvider();
     using var scope = provider.CreateScope();
 
     var evolver = scope.ServiceProvider.GetRequiredService<INeatEvolver>();
@@ -85,8 +85,6 @@ static async Task RunXor()
             }
         }
     }
-
-    provider.Dispose();
 }
 
 static async Task RunSineApproximation()
@@ -116,7 +114,7 @@ static async Task RunSineApproximation()
     });
     services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
 
-    var provider = services.BuildServiceProvider();
+    using var provider = services.BuildServiceProvider();
     using var scope = provider.CreateScope();
 
     var evolver = scope.ServiceProvider.GetRequiredService<INeatEvolver>();
@@ -170,6 +168,4 @@ static async Task RunSineApproximation()
             }
         }
     }
-
-    provider.Dispose();
 }
