@@ -42,12 +42,20 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IValidateOptions<NeatSharpOptions>, NeatSharpOptionsValidator>();
         services.AddSingleton<IRunReporter, RunReporter>();
-        services.AddScoped<INeatEvolver, NeatEvolverStub>();
+        services.AddScoped<INeatEvolver, NeatEvolver>();
+        services.AddScoped<IPopulationFactory, PopulationFactory>();
 
         // Genome / Phenotype services (Spec 002)
         services.AddSingleton<IActivationFunctionRegistry, ActivationFunctionRegistry>();
         services.AddSingleton<INetworkBuilder, FeedForwardNetworkBuilder>();
-        services.AddScoped<IInnovationTracker, InnovationTracker>();
+        services.AddScoped<IInnovationTracker>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<NeatSharpOptions>>().Value;
+            // Node IDs 0..I-1 are inputs, I is bias, I+1..I+O are outputs.
+            // The tracker must start allocating new node IDs after the initial topology.
+            int startNodeId = opts.InputCount + 1 + opts.OutputCount;
+            return new InnovationTracker(startNodeId: startNodeId);
+        });
 
         // Evolution: Mutation operators (Spec 003)
         services.AddSingleton<WeightPerturbationMutation>();
@@ -218,18 +226,4 @@ public static class ServiceCollectionExtensions
         }
     }
 
-    /// <summary>
-    /// Placeholder evolver until the NEAT algorithm is implemented.
-    /// </summary>
-    private sealed class NeatEvolverStub : INeatEvolver
-    {
-        public Task<EvolutionResult> RunAsync(
-            IEvaluationStrategy evaluator,
-            CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException(
-                "The NEAT evolution engine is not yet implemented. "
-                + "This API surface defines the public contract for future implementation.");
-        }
-    }
 }

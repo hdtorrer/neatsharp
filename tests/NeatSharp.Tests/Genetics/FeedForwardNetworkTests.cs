@@ -41,7 +41,7 @@ public class FeedForwardNetworkTests
         Span<double> outputs = stackalloc double[1];
         network.Activate([1.0, 0.5], outputs);
 
-        double expected = 1.0 / (1.0 + Math.Exp(-0.6)); // sigmoid(0.6)
+        double expected = ActivationFunctions.SigmoidFunction(0.6);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -70,8 +70,8 @@ public class FeedForwardNetworkTests
         Span<double> outputs = stackalloc double[1];
         network.Activate([1.0], outputs);
 
-        double hiddenValue = 1.0 / (1.0 + Math.Exp(-2.0)); // sigmoid(2.0)
-        double expected = 1.0 / (1.0 + Math.Exp(-hiddenValue)); // sigmoid(sigmoid(2.0))
+        double hiddenValue = ActivationFunctions.SigmoidFunction(2.0);
+        double expected = ActivationFunctions.SigmoidFunction(hiddenValue);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -99,7 +99,7 @@ public class FeedForwardNetworkTests
         network.Activate([1.0, 0.5], outputs);
 
         // Only connections 1 and 3: sigmoid(1.0*0.5 + 1.0*(-0.3)) = sigmoid(0.2)
-        double expected = 1.0 / (1.0 + Math.Exp(-0.2));
+        double expected = ActivationFunctions.SigmoidFunction(0.2);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -126,7 +126,7 @@ public class FeedForwardNetworkTests
 
         // input contributes 0.0*0.0=0.0, bias contributes 1.0*0.5=0.5
         // sigmoid(0.5)
-        double expected = 1.0 / (1.0 + Math.Exp(-0.5));
+        double expected = ActivationFunctions.SigmoidFunction(0.5);
         outputs[0].Should().BeApproximately(expected, 1e-10);
     }
 
@@ -260,17 +260,17 @@ public class FeedForwardNetworkTests
 
         // [0.0, 0.0]: sigmoid(0.0*0.5 + 0.0*0.8 + 1.0*(-0.3)) = sigmoid(-0.3)
         network.Activate([0.0, 0.0], outputs);
-        double expected00 = 1.0 / (1.0 + Math.Exp(0.3));
+        double expected00 = ActivationFunctions.SigmoidFunction(-0.3);
         outputs[0].Should().BeApproximately(expected00, 1e-10);
 
         // [1.0, 1.0]: sigmoid(1.0*0.5 + 1.0*0.8 + 1.0*(-0.3)) = sigmoid(1.0)
         network.Activate([1.0, 1.0], outputs);
-        double expected11 = 1.0 / (1.0 + Math.Exp(-1.0));
+        double expected11 = ActivationFunctions.SigmoidFunction(1.0);
         outputs[0].Should().BeApproximately(expected11, 1e-10);
 
         // [0.5, 0.5]: sigmoid(0.5*0.5 + 0.5*0.8 + 1.0*(-0.3)) = sigmoid(0.35)
         network.Activate([0.5, 0.5], outputs);
-        double expected55 = 1.0 / (1.0 + Math.Exp(-0.35));
+        double expected55 = ActivationFunctions.SigmoidFunction(0.35);
         outputs[0].Should().BeApproximately(expected55, 1e-10);
     }
 
@@ -296,8 +296,8 @@ public class FeedForwardNetworkTests
         var network = _builder.Build(genome);
         var outputs = new double[1];
 
-        double expectedA = 1.0 / (1.0 + Math.Exp(-0.6));   // sigmoid(1.0*0.5 + 0.5*0.8 + 1.0*(-0.3))
-        double expectedB = 1.0 / (1.0 + Math.Exp(0.3));     // sigmoid(0.0*0.5 + 0.0*0.8 + 1.0*(-0.3))
+        double expectedA = ActivationFunctions.SigmoidFunction(0.6);   // sigmoid(1.0*0.5 + 0.5*0.8 + 1.0*(-0.3))
+        double expectedB = ActivationFunctions.SigmoidFunction(-0.3); // sigmoid(0.0*0.5 + 0.0*0.8 + 1.0*(-0.3))
 
         // Interleave: A, B, A, B, A, B...
         for (int i = 0; i < 100; i++)

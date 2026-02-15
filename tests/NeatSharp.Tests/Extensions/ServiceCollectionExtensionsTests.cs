@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NeatSharp.Configuration;
 using NeatSharp.Evolution;
@@ -21,6 +22,7 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
         services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
         var provider = services.BuildServiceProvider();
 
         using var scope = provider.CreateScope();
@@ -213,6 +215,7 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
         services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
         var provider = services.BuildServiceProvider();
 
         provider.GetService<IRunReporter>().Should().NotBeNull();
@@ -423,5 +426,74 @@ public class ServiceCollectionExtensionsTests
 
         orchestrator1.Should().NotBeNull();
         orchestrator1.Should().BeSameAs(orchestrator2);
+    }
+
+    // --- Training runner services (Spec 004) ---
+
+    [Fact]
+    public void AddNeatSharp_RegistersINeatEvolverAsNeatEvolver()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+
+        using var scope = provider.CreateScope();
+        var evolver = scope.ServiceProvider.GetRequiredService<INeatEvolver>();
+
+        evolver.Should().BeOfType<NeatEvolver>();
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersINeatEvolverAsScoped()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var evolver1a = scope1.ServiceProvider.GetRequiredService<INeatEvolver>();
+        var evolver1b = scope1.ServiceProvider.GetRequiredService<INeatEvolver>();
+        var evolver2 = scope2.ServiceProvider.GetRequiredService<INeatEvolver>();
+
+        evolver1a.Should().BeSameAs(evolver1b);
+        evolver1a.Should().NotBeSameAs(evolver2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIPopulationFactory()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+
+        using var scope = provider.CreateScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IPopulationFactory>();
+
+        factory.Should().NotBeNull();
+        factory.Should().BeOfType<PopulationFactory>();
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIPopulationFactoryAsScoped()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var factory1a = scope1.ServiceProvider.GetRequiredService<IPopulationFactory>();
+        var factory1b = scope1.ServiceProvider.GetRequiredService<IPopulationFactory>();
+        var factory2 = scope2.ServiceProvider.GetRequiredService<IPopulationFactory>();
+
+        factory1a.Should().BeSameAs(factory1b);
+        factory1a.Should().NotBeSameAs(factory2);
     }
 }
