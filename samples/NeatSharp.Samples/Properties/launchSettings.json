@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "NeatSharp.Samples": {
+      "commandName": "Project"
+    },
+    "GPU Benchmark": {
+      "commandName": "Project",
+      "commandLineArgs": "benchmark"
+    }
+  }
+}

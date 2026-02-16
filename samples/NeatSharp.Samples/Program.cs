@@ -9,6 +9,46 @@ using NeatSharp.Reporting;
 Console.WriteLine("=== NeatSharp Samples ===");
 Console.WriteLine();
 
+if (args.Length > 0 && args[0] == "benchmark")
+{
+    // Detect real GPU first
+    var detector = new NeatSharp.Gpu.Detection.GpuDeviceDetector(
+        Microsoft.Extensions.Options.Options.Create(new NeatSharp.Gpu.Configuration.GpuOptions()));
+    var device = detector.Detect();
+    if (device is not null)
+    {
+        Console.WriteLine($"GPU Detected: {device.DeviceName} (CC {device.ComputeCapability}, {device.MemoryBytes / (1024 * 1024)} MB, Compatible: {device.IsCompatible})");
+    }
+    else
+    {
+        Console.WriteLine("No CUDA GPU detected.");
+    }
+
+    Console.WriteLine();
+    var scalingResults = NeatSharp.Samples.GpuBenchmark.RunScalingBenchmark(
+        populationSizes: [500, 1000, 2000, 5000],
+        hiddenNodeCounts: [0, 10, 20, 50]);
+
+    Console.WriteLine();
+
+    // Also test with more test cases (100) to increase per-genome GPU workload
+    Console.WriteLine();
+    Console.WriteLine("=== High Test-Case Count Benchmark (100 test cases) ===");
+    var heavyFitness = new NeatSharp.Samples.ParametricFitnessFunction(caseCount: 100, inputCount: 4);
+    var heavyResults = NeatSharp.Samples.GpuBenchmark.RunScalingBenchmark(
+        populationSizes: [500, 1000, 2000, 5000],
+        hiddenNodeCounts: [0, 10, 20, 50],
+        fitnessFunction: heavyFitness);
+
+    Console.WriteLine();
+    Console.WriteLine("=== Final Report ===");
+    Console.WriteLine(NeatSharp.Samples.GpuBenchmark.GenerateScalingMarkdownReport(
+        scalingResults, device,
+        heavyResults: heavyResults,
+        heavyCaseCount: 100));
+    return;
+}
+
 await RunXor();
 Console.WriteLine();
 await RunSineApproximation();
