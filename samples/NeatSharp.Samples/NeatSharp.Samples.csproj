@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\NeatSharp\NeatSharp.csproj" />
+    <ProjectReference Include="..\..\src\NeatSharp.Gpu\NeatSharp.Gpu.csproj" />
   </ItemGroup>
 
   <ItemGroup>
