@@ -192,6 +192,7 @@ public class GpuQuickstartValidationTests
         private static readonly float[] Expected = [0f, 1f, 1f, 0f];
 
         public int CaseCount => 4;
+        public int OutputCount => 1;
 
         public ReadOnlyMemory<float> InputCases => Inputs;
 

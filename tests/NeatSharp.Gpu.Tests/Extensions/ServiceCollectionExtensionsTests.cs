@@ -116,6 +116,7 @@ public class ServiceCollectionExtensionsTests
     private class TestFitnessFunction : IGpuFitnessFunction
     {
         public int CaseCount => 1;
+        public int OutputCount => 1;
         public ReadOnlyMemory<float> InputCases => new float[] { 0f, 0f };
         public double ComputeFitness(ReadOnlySpan<float> outputs) => 1.0;
     }

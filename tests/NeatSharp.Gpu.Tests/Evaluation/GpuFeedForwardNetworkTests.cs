@@ -70,13 +70,12 @@ public class GpuFeedForwardNetworkTests
     // --- IGenome delegation to CPU fallback ---
 
     [Fact]
-    public void NodeCount_DelegatesToCpuNetwork()
+    public void NodeCount_ReturnsGpuTopologyNodeCount()
     {
         var genome = CreateSimpleGenome();
-        var cpuNetwork = CpuBuilder.Build(genome);
         var gpuNetwork = (GpuFeedForwardNetwork)GpuBuilder.Build(genome);
 
-        gpuNetwork.NodeCount.Should().Be(cpuNetwork.NodeCount);
+        gpuNetwork.NodeCount.Should().Be(gpuNetwork.NodeActivationTypes.Length);
     }
 
     [Fact]

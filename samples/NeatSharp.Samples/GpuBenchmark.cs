@@ -733,6 +733,9 @@ public sealed class MultiInputFitnessFunction : IGpuFitnessFunction
     public int CaseCount => 10;
 
     /// <inheritdoc />
+    public int OutputCount => 1;
+
+    /// <inheritdoc />
     public ReadOnlyMemory<float> InputCases => TestInputs;
 
     /// <inheritdoc />
@@ -782,6 +785,8 @@ public sealed class ParametricFitnessFunction : IGpuFitnessFunction
     }
 
     public int CaseCount { get; }
+
+    public int OutputCount => 1;
 
     public ReadOnlyMemory<float> InputCases => _testInputs;
 

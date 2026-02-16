@@ -78,6 +78,8 @@ public class XorFitnessFunction : IGpuFitnessFunction
 
     public int CaseCount => 4;
 
+    public int OutputCount => 1;
+
     public ReadOnlyMemory<float> InputCases => Inputs;
 
     public double ComputeFitness(ReadOnlySpan<float> outputs)

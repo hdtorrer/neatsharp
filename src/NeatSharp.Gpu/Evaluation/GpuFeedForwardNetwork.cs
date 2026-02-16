@@ -95,9 +95,14 @@ internal sealed class GpuFeedForwardNetwork : IGenome
     internal GpuEvalNode[] EvalOrder { get; }
 
     /// <summary>
-    /// Gets the total number of nodes from the CPU phenotype.
+    /// Gets the total number of reachable nodes in the GPU topology.
     /// </summary>
-    public int NodeCount => _cpuNetwork.NodeCount;
+    /// <remarks>
+    /// Returns <see cref="NodeActivationTypes"/>.Length, which reflects the GPU
+    /// topology's reachable node count after BFS pruning and topological sort.
+    /// This is the value used by <see cref="GpuPopulationData"/> for buffer sizing.
+    /// </remarks>
+    public int NodeCount => NodeActivationTypes.Length;
 
     /// <summary>
     /// Gets the total number of connections from the CPU phenotype.

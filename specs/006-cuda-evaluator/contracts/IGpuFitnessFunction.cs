@@ -28,6 +28,15 @@ public interface IGpuFitnessFunction
     int CaseCount { get; }
 
     /// <summary>
+    /// Gets the number of output values produced per genome per test case.
+    /// </summary>
+    /// <remarks>
+    /// This must match the network's output node count. Used by the evaluator
+    /// to correctly size output buffers and slice per-genome results.
+    /// </remarks>
+    int OutputCount { get; }
+
+    /// <summary>
     /// Gets the flattened test case input data, row-major:
     /// <c>inputs[caseIndex * inputCount + inputIndex]</c>.
     /// </summary>

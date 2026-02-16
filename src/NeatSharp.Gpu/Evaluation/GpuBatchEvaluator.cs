@@ -60,6 +60,21 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
     private bool _gpuInitialized;
     private bool _disposed;
 
+    // Cached kernel delegate — loaded once after GPU init
+    private Action<
+        Index1D,
+        GenomeIndexData,
+        TopologyData,
+        ArrayView1D<float, Stride1D.Dense>,
+        int,
+        int,
+        int,
+        ArrayView1D<float, Stride1D.Dense>,
+        ArrayView1D<float, Stride1D.Dense>>? _cachedKernel;
+
+    // Cached test input array — InputCases is immutable per the IGpuFitnessFunction contract
+    private float[]? _cachedTestInputs;
+
     // Pooled GPU buffers — resize-on-grow pattern
     private MemoryBuffer1D<int, Stride1D.Dense>? _genomeNodeOffsetsBuffer;
     private MemoryBuffer1D<int, Stride1D.Dense>? _genomeNodeCountsBuffer;
@@ -125,13 +140,14 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        int inputCount = _fitnessFunction.InputCases.Length / _fitnessFunction.CaseCount;
+        int outputCount = _fitnessFunction.OutputCount;
+
         // Check if genomes are GPU-compatible
         if (genomes[0] is not GpuFeedForwardNetwork)
         {
             _logger.LogDebug("Genomes are not GpuFeedForwardNetwork — using CPU evaluation.");
-            EvaluateCpu(genomes, setFitness, _fitnessFunction,
-                _fitnessFunction.InputCases.Length / _fitnessFunction.CaseCount,
-                GetOutputCount(genomes));
+            EvaluateCpu(genomes, setFitness, _fitnessFunction, inputCount, outputCount);
             return Task.CompletedTask;
         }
 
@@ -151,8 +167,6 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
         }
 
         // CPU fallback
-        int inputCount = _fitnessFunction.InputCases.Length / _fitnessFunction.CaseCount;
-        int outputCount = GetOutputCount(genomes);
         EvaluateCpu(genomes, setFitness, _fitnessFunction, inputCount, outputCount);
         return Task.CompletedTask;
     }
@@ -180,7 +194,7 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
 
         int caseCount = _fitnessFunction.CaseCount;
         int inputCount = _fitnessFunction.InputCases.Length / caseCount;
-        int outputCount = gpuGenomes[0].OutputIndices.Length;
+        int outputCount = _fitnessFunction.OutputCount;
         int totalOutputs = populationData.PopulationSize * caseCount * outputCount;
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -243,9 +257,9 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
             _biasNodeIndicesBuffer!.CopyFromCPU(populationData.BiasNodeIndices);
         }
 
-        // Upload test inputs
-        _testInputsBuffer!.CopyFromCPU(
-            _fitnessFunction.InputCases.ToArray());
+        // Upload test inputs (cached since InputCases is immutable)
+        _cachedTestInputs ??= _fitnessFunction.InputCases.ToArray();
+        _testInputsBuffer!.CopyFromCPU(_cachedTestInputs);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -277,8 +291,8 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
             BiasNodeIndices = _biasNodeIndicesBuffer!.View
         };
 
-        // Load and launch kernel
-        var kernel = _accelerator!.LoadAutoGroupedStreamKernel<
+        // Load kernel (cached after first call)
+        _cachedKernel ??= _accelerator!.LoadAutoGroupedStreamKernel<
             Index1D,
             GenomeIndexData,
             TopologyData,
@@ -290,7 +304,7 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
             ArrayView1D<float, Stride1D.Dense>>(
             ForwardPropagationKernel.Execute);
 
-        kernel(
+        _cachedKernel(
             populationData.PopulationSize,
             genomeData,
             topology,
@@ -469,9 +483,13 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
         int inputCount,
         int outputCount)
     {
+        const int stackAllocThreshold = 128;
+
         var inputSpan = fitnessFunction.InputCases.Span;
-        Span<double> cpuInputs = stackalloc double[inputCount];
-        Span<double> cpuOutputs = stackalloc double[outputCount];
+        double[]? rentedInputs = inputCount > stackAllocThreshold ? new double[inputCount] : null;
+        double[]? rentedOutputs = outputCount > stackAllocThreshold ? new double[outputCount] : null;
+        Span<double> cpuInputs = rentedInputs ?? stackalloc double[inputCount];
+        Span<double> cpuOutputs = rentedOutputs ?? stackalloc double[outputCount];
 
         for (int i = 0; i < genomes.Count; i++)
         {
@@ -495,20 +513,6 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
 
             setFitness(i, fitnessFunction.ComputeFitness(allOutputs));
         }
-    }
-
-    private static int GetOutputCount(IReadOnlyList<IGenome> genomes)
-    {
-        if (genomes[0] is GpuFeedForwardNetwork gpuGenome)
-        {
-            return gpuGenome.OutputIndices.Length;
-        }
-
-        // For non-GPU genomes, we need to determine output count.
-        // The fitness function's output slice per case is totalOutputs / caseCount.
-        // We can't determine this from IGenome alone without additional context.
-        // Default assumption: 1 output. Callers should ensure proper genome types.
-        return 1;
     }
 
     private static bool IsOutOfMemoryException(Exception ex)
@@ -562,56 +566,39 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
         {
             return;
         }
 
-        if (disposing)
-        {
-            // Dispose all GPU memory buffers
-            _genomeNodeOffsetsBuffer?.Dispose();
-            _genomeNodeCountsBuffer?.Dispose();
-            _genomeEvalOrderOffsetsBuffer?.Dispose();
-            _genomeEvalOrderCountsBuffer?.Dispose();
-            _genomeInputOffsetsBuffer?.Dispose();
-            _genomeInputCountsBuffer?.Dispose();
-            _genomeOutputOffsetsBuffer?.Dispose();
-            _genomeOutputCountsBuffer?.Dispose();
-            _genomeBiasOffsetsBuffer?.Dispose();
-            _genomeBiasCountsBuffer?.Dispose();
-            _nodeActivationTypesBuffer?.Dispose();
-            _evalNodeIndicesBuffer?.Dispose();
-            _evalNodeConnOffsetsBuffer?.Dispose();
-            _evalNodeConnCountsBuffer?.Dispose();
-            _incomingSourceIndicesBuffer?.Dispose();
-            _incomingWeightsBuffer?.Dispose();
-            _inputNodeIndicesBuffer?.Dispose();
-            _outputNodeIndicesBuffer?.Dispose();
-            _biasNodeIndicesBuffer?.Dispose();
-            _testInputsBuffer?.Dispose();
-            _testOutputsBuffer?.Dispose();
-            _activationBuffer?.Dispose();
+        // Dispose all GPU memory buffers
+        _genomeNodeOffsetsBuffer?.Dispose();
+        _genomeNodeCountsBuffer?.Dispose();
+        _genomeEvalOrderOffsetsBuffer?.Dispose();
+        _genomeEvalOrderCountsBuffer?.Dispose();
+        _genomeInputOffsetsBuffer?.Dispose();
+        _genomeInputCountsBuffer?.Dispose();
+        _genomeOutputOffsetsBuffer?.Dispose();
+        _genomeOutputCountsBuffer?.Dispose();
+        _genomeBiasOffsetsBuffer?.Dispose();
+        _genomeBiasCountsBuffer?.Dispose();
+        _nodeActivationTypesBuffer?.Dispose();
+        _evalNodeIndicesBuffer?.Dispose();
+        _evalNodeConnOffsetsBuffer?.Dispose();
+        _evalNodeConnCountsBuffer?.Dispose();
+        _incomingSourceIndicesBuffer?.Dispose();
+        _incomingWeightsBuffer?.Dispose();
+        _inputNodeIndicesBuffer?.Dispose();
+        _outputNodeIndicesBuffer?.Dispose();
+        _biasNodeIndicesBuffer?.Dispose();
+        _testInputsBuffer?.Dispose();
+        _testOutputsBuffer?.Dispose();
+        _activationBuffer?.Dispose();
 
-            // Dispose accelerator and context
-            _accelerator?.Dispose();
-            _context?.Dispose();
-        }
+        // Dispose accelerator and context
+        _accelerator?.Dispose();
+        _context?.Dispose();
 
         _disposed = true;
-    }
-
-    /// <summary>
-    /// Finalizer to ensure GPU resources are released.
-    /// </summary>
-    ~GpuBatchEvaluator()
-    {
-        Dispose(disposing: false);
     }
 }

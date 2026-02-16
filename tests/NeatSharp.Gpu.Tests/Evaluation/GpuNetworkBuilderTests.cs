@@ -25,13 +25,12 @@ public class GpuNetworkBuilderTests
     }
 
     [Fact]
-    public void Build_DelegatesToInnerBuilder_NodeCountMatches()
+    public void Build_NodeCountMatchesGpuTopology()
     {
         var genome = CreateSimpleGenome();
-        var cpuNetwork = CpuBuilder.Build(genome);
-        var gpuNetwork = GpuBuilder.Build(genome);
+        var gpuNetwork = (GpuFeedForwardNetwork)GpuBuilder.Build(genome);
 
-        gpuNetwork.NodeCount.Should().Be(cpuNetwork.NodeCount);
+        gpuNetwork.NodeCount.Should().Be(gpuNetwork.NodeActivationTypes.Length);
     }
 
     [Fact]
