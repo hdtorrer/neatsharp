@@ -136,11 +136,7 @@ internal sealed class NeatEvolver : INeatEvolver
             int resumeCompletedGens = checkpoint.Generation;
             if (ShouldStop(resumeCompletedGens, championFitness, species))
             {
-                // The run would have stopped here — no reproduction needed
-                generation = checkpoint.Generation - 1;
-                // Fall through to the loop which will build the result
-                // (completedGenerations will be set correctly below)
-                // Restore population from checkpoint for result building
+                // The run would have stopped here — return immediately without reproduction
                 currentPopulation = new List<Genome>(checkpoint.Population);
                 generation = checkpoint.Generation;
 

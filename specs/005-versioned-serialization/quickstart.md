@@ -37,13 +37,13 @@ var result = await evolver.RunAsync(
     EvaluationStrategy.FromFunction(genome => EvaluateXor(genome)),
     new EvolutionRunOptions
     {
-        OnCheckpoint = checkpoint =>
+        OnCheckpoint = async (checkpoint, ct) =>
         {
             // Save every 10 generations
             if (checkpoint.Generation % 10 == 0)
             {
                 using var stream = File.Create($"checkpoint-gen{checkpoint.Generation}.json");
-                serializer.Save(stream, checkpoint);
+                await serializer.SaveAsync(stream, checkpoint, ct);
             }
             // Always keep the latest in memory
             latestCheckpoint = checkpoint;
@@ -117,7 +117,7 @@ All operations work with any `Stream` — not just files:
 ```csharp
 // In-memory round-trip
 using var memoryStream = new MemoryStream();
-serializer.Save(memoryStream, checkpoint);
+await serializer.SaveAsync(memoryStream, checkpoint);
 
 memoryStream.Position = 0;
 var restored = await serializer.LoadAsync(memoryStream);
@@ -167,7 +167,7 @@ var tempPath = targetPath + ".tmp";
 
 using (var stream = File.Create(tempPath))
 {
-    serializer.Save(stream, checkpoint);
+    await serializer.SaveAsync(stream, checkpoint);
 }
 
 File.Move(tempPath, targetPath, overwrite: true);

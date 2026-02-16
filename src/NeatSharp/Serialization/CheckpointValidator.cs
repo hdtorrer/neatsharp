@@ -14,11 +14,43 @@ public sealed class CheckpointValidator : ICheckpointValidator
 
         var errors = new List<string>();
 
+        ValidateGenomeNodeConnectionIntegrity(checkpoint, errors);
         ValidateSpeciesIndices(checkpoint, errors);
         ValidateCounterConsistency(checkpoint, errors);
         ValidateChampionInPopulation(checkpoint, errors);
 
         return new CheckpointValidationResult(errors);
+    }
+
+    private static void ValidateGenomeNodeConnectionIntegrity(TrainingCheckpoint checkpoint, List<string> errors)
+    {
+        for (int g = 0; g < checkpoint.Population.Count; g++)
+        {
+            var genome = checkpoint.Population[g];
+            var nodeIds = new HashSet<int>(genome.Nodes.Count);
+            foreach (var node in genome.Nodes)
+            {
+                nodeIds.Add(node.Id);
+            }
+
+            for (int c = 0; c < genome.Connections.Count; c++)
+            {
+                var connection = genome.Connections[c];
+                if (!nodeIds.Contains(connection.SourceNodeId))
+                {
+                    errors.Add(
+                        $"Genome {g} connection {c} (innovation {connection.InnovationNumber}) " +
+                        $"references non-existent source node ID {connection.SourceNodeId}.");
+                }
+
+                if (!nodeIds.Contains(connection.TargetNodeId))
+                {
+                    errors.Add(
+                        $"Genome {g} connection {c} (innovation {connection.InnovationNumber}) " +
+                        $"references non-existent target node ID {connection.TargetNodeId}.");
+                }
+            }
+        }
     }
 
     private static void ValidateSpeciesIndices(TrainingCheckpoint checkpoint, List<string> errors)

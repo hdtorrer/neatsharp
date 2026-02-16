@@ -68,7 +68,18 @@ public sealed class CheckpointSerializer : ICheckpointSerializer
         ArgumentNullException.ThrowIfNull(stream);
 
         // Step 1: Read stream into a JsonDocument to check schema version
-        using var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        JsonDocument jsonDoc;
+        try
+        {
+            jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (JsonException ex)
+        {
+            throw new CheckpointCorruptionException(
+                [$"Failed to parse checkpoint: the stream does not contain valid JSON. {ex.Message}"], ex);
+        }
+
+        using var _ = jsonDoc;
 
         // Step 2: Read "schemaVersion" property from root
         string? schemaVersion = null;
