@@ -140,10 +140,10 @@
 
 **Purpose**: End-to-end integration validation, sample updates, and final quality checks
 
-- [ ] T033 [P] Write GpuTrainingIntegrationTests — full NeatEvolver training loop with GpuBatchEvaluator on ILGPU CPU accelerator, verify XOR problem converges, verify champion fitness meets threshold, verify GPU-to-CPU fallback during training in tests/NeatSharp.Gpu.Tests/Integration/GpuTrainingIntegrationTests.cs
-- [ ] T034 [P] Run quickstart.md end-to-end validation — verify all code samples in specs/006-cuda-evaluator/quickstart.md compile and run correctly against the implemented API
-- [ ] T035 Final build verification — clean solution build on both net8.0 and net9.0, run all tests (GPU trait excluded on CI without GPU), verify zero nullable warnings, verify NeatSharp core has no ILGPU dependency
-- [ ] T036 [US2] Write SC-005 startup overhead test — measure GPU detection time when no CUDA device is available (GpuDeviceDetector.Detect() returns null via ILGPU CPU accelerator), assert total detection overhead < 1 second, verifying negligible startup cost for CPU-only machines in tests/NeatSharp.Gpu.Tests/Detection/GpuDeviceDetectorTests.cs
+- [X] T033 [P] Write GpuTrainingIntegrationTests — full NeatEvolver training loop with GpuBatchEvaluator on ILGPU CPU accelerator, verify XOR problem converges, verify champion fitness meets threshold, verify GPU-to-CPU fallback during training in tests/NeatSharp.Gpu.Tests/Integration/GpuTrainingIntegrationTests.cs
+- [X] T034 [P] Run quickstart.md end-to-end validation — verify all code samples in specs/006-cuda-evaluator/quickstart.md compile and run correctly against the implemented API
+- [X] T035 Final build verification — clean solution build on both net8.0 and net9.0, run all tests (GPU trait excluded on CI without GPU), verify zero nullable warnings, verify NeatSharp core has no ILGPU dependency
+- [X] T036 [US2] Write SC-005 startup overhead test — measure GPU detection time when no CUDA device is available (GpuDeviceDetector.Detect() returns null via ILGPU CPU accelerator), assert total detection overhead < 1 second, verifying negligible startup cost for CPU-only machines in tests/NeatSharp.Gpu.Tests/Detection/GpuDeviceDetectorTests.cs
 
 ---
 

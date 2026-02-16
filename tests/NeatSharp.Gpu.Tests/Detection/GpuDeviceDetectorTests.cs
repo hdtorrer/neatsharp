@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using NeatSharp.Gpu.Configuration;
@@ -77,5 +78,22 @@ public class GpuDeviceDetectorTests
         var act = () => new GpuDeviceDetector(null!);
 
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// SC-005: GPU detection overhead must be less than 1 second on a CPU-only machine.
+    /// On machines with a CUDA GPU, the test still validates detection completes within 1 second.
+    /// </summary>
+    [Fact]
+    public void Detect_StartupOverhead_CompletesWithinOneSecond()
+    {
+        var detector = CreateDetector();
+
+        var stopwatch = Stopwatch.StartNew();
+        _ = detector.Detect();
+        stopwatch.Stop();
+
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1),
+            "GPU detection overhead should be negligible (<1s) for CPU-only machines (SC-005)");
     }
 }
