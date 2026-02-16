@@ -121,4 +121,38 @@ public sealed class Genome
         InputCount = inputCount;
         OutputCount = outputCount;
     }
+
+    /// <summary>
+    /// Determines whether this genome is structurally equal to another genome
+    /// by comparing nodes and connections element-wise using record equality.
+    /// </summary>
+    /// <param name="other">The genome to compare against.</param>
+    /// <returns><c>true</c> if both genomes have identical nodes and connections; otherwise, <c>false</c>.</returns>
+    public bool StructurallyEquals(Genome other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        if (Nodes.Count != other.Nodes.Count || Connections.Count != other.Connections.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < Nodes.Count; i++)
+        {
+            if (Nodes[i] != other.Nodes[i])
+            {
+                return false;
+            }
+        }
+
+        for (int i = 0; i < Connections.Count; i++)
+        {
+            if (Connections[i] != other.Connections[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

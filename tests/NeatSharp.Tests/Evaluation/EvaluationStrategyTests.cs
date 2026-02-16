@@ -313,5 +313,14 @@ public class EvaluationStrategyTests
             onRunAsync(evaluator);
             return Task.FromResult<EvolutionResult>(null!);
         }
+
+        public Task<EvolutionResult> RunAsync(
+            IEvaluationStrategy evaluator,
+            EvolutionRunOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            onRunAsync(evaluator);
+            return Task.FromResult<EvolutionResult>(null!);
+        }
     }
 }

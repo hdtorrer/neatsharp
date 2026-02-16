@@ -43,8 +43,26 @@ public interface IInnovationTracker
     NodeSplitResult GetNodeSplitInnovation(int connectionInnovation);
 
     /// <summary>
+    /// Gets the next innovation number that will be assigned.
+    /// </summary>
+    int NextInnovationNumber { get; }
+
+    /// <summary>
+    /// Gets the next node ID that will be assigned.
+    /// </summary>
+    int NextNodeId { get; }
+
+    /// <summary>
     /// Advances to the next generation, clearing the deduplication cache
     /// while preserving global ID counters.
     /// </summary>
     void NextGeneration();
+
+    /// <summary>
+    /// Restores the innovation tracker to a previously saved state.
+    /// Sets both counters and clears all deduplication caches.
+    /// </summary>
+    /// <param name="nextInnovationNumber">The next innovation number counter value.</param>
+    /// <param name="nextNodeId">The next node ID counter value.</param>
+    void RestoreState(int nextInnovationNumber, int nextNodeId);
 }

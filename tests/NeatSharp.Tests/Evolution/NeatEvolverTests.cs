@@ -328,6 +328,10 @@ public class NeatEvolverTests
 
         public NextGenerationCountingTracker(IInnovationTracker inner) => _inner = inner;
 
+        public int NextInnovationNumber => _inner.NextInnovationNumber;
+
+        public int NextNodeId => _inner.NextNodeId;
+
         public int GetConnectionInnovation(int sourceNodeId, int targetNodeId)
             => _inner.GetConnectionInnovation(sourceNodeId, targetNodeId);
 
@@ -339,6 +343,9 @@ public class NeatEvolverTests
             NextGenerationCallCount++;
             _inner.NextGeneration();
         }
+
+        public void RestoreState(int nextInnovationNumber, int nextNodeId)
+            => _inner.RestoreState(nextInnovationNumber, nextNodeId);
     }
 
     #endregion
