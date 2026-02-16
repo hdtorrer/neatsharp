@@ -8,6 +8,7 @@ using NeatSharp.Evaluation;
 using NeatSharp.Genetics;
 using NeatSharp.Gpu.Configuration;
 using NeatSharp.Gpu.Detection;
+using NeatSharp.Gpu.Exceptions;
 using NeatSharp.Gpu.Kernels;
 
 namespace NeatSharp.Gpu.Evaluation;
@@ -185,7 +186,17 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         // Ensure GPU buffers are allocated (resize-on-grow)
-        EnsureBuffers(populationData, caseCount, inputCount, outputCount);
+        try
+        {
+            EnsureBuffers(populationData, caseCount, inputCount, outputCount);
+        }
+        catch (Exception ex) when (IsOutOfMemoryException(ex))
+        {
+            long estimatedBytes = EstimateMemoryBytes(populationData, caseCount, inputCount, outputCount);
+            long availableBytes = _accelerator?.MemorySize ?? 0;
+            throw GpuOutOfMemoryException.Create(
+                populationData.PopulationSize, estimatedBytes, availableBytes, ex);
+        }
 
         // Upload topology arrays to GPU
         _genomeNodeOffsetsBuffer!.CopyFromCPU(populationData.GenomeNodeOffsets);
@@ -498,6 +509,52 @@ public sealed class GpuBatchEvaluator : IBatchEvaluator, IDisposable
         // We can't determine this from IGenome alone without additional context.
         // Default assumption: 1 output. Callers should ensure proper genome types.
         return 1;
+    }
+
+    private static bool IsOutOfMemoryException(Exception ex)
+    {
+        for (var current = ex; current != null; current = current.InnerException)
+        {
+            if (current is OutOfMemoryException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static long EstimateMemoryBytes(
+        GpuPopulationData populationData,
+        int caseCount,
+        int inputCount,
+        int outputCount)
+    {
+        int popSize = populationData.PopulationSize;
+        const long intSize = sizeof(int);
+        const long floatSize = sizeof(float);
+
+        long bytes = 0;
+
+        // Per-genome index buffers (10 arrays × popSize × int)
+        bytes += 10L * popSize * intSize;
+
+        // Topology buffers
+        bytes += Math.Max(1, populationData.TotalNodes) * intSize;
+        bytes += Math.Max(1, populationData.TotalEvalNodes) * intSize * 3;
+        bytes += Math.Max(1, populationData.TotalIncoming) * (intSize + floatSize);
+        bytes += Math.Max(1, populationData.TotalInputs) * intSize;
+        bytes += Math.Max(1, populationData.TotalOutputs) * intSize;
+        bytes += Math.Max(1, populationData.TotalBiasNodes) * intSize;
+
+        // Test I/O buffers
+        bytes += Math.Max(1, caseCount * inputCount) * floatSize;
+        bytes += Math.Max(1L * popSize * caseCount * outputCount, 1) * floatSize;
+
+        // Activation buffer
+        bytes += Math.Max(1, populationData.TotalNodes) * floatSize;
+
+        return bytes;
     }
 
     /// <summary>

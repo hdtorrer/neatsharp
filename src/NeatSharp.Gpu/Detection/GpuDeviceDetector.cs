@@ -91,12 +91,37 @@ internal sealed class GpuDeviceDetector : IGpuDeviceDetector
             _cachedResult = new GpuDeviceInfo(
                 deviceName, computeCapability, memoryBytes, isCompatible, diagnostic);
         }
+        catch (Exception ex) when (IsMissingRuntimeException(ex))
+        {
+            // CUDA runtime/driver DLLs not found — provide actionable diagnostic
+            _cachedResult = new GpuDeviceInfo(
+                "Unknown",
+                new Version(0, 0),
+                0,
+                false,
+                "CUDA runtime libraries not found. Install the NVIDIA CUDA toolkit " +
+                "from https://developer.nvidia.com/cuda-downloads and ensure " +
+                "compatible NVIDIA GPU drivers are installed.");
+        }
         catch (Exception)
         {
-            // CUDA runtime not available -- treat as no device
+            // Other CUDA errors — treat as no device
             _cachedResult = null;
         }
 
         return _cachedResult;
+    }
+
+    private static bool IsMissingRuntimeException(Exception ex)
+    {
+        for (var current = ex; current != null; current = current.InnerException)
+        {
+            if (current is DllNotFoundException)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

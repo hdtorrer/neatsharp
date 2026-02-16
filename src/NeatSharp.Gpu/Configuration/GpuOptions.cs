@@ -35,10 +35,22 @@ public sealed class GpuOptions
 
     /// <summary>
     /// Gets or sets whether to use best-effort deterministic algorithms
-    /// on the GPU. When true, avoids non-deterministic operations where
-    /// possible (may reduce throughput slightly).
-    /// Default: false.
+    /// on the GPU. Default: false.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Reserved for future use.</strong> The current GPU kernel implementation
+    /// uses sequential accumulation (1 thread per genome, fixed topological order) which
+    /// is inherently deterministic. This option has no effect on runtime behavior in the
+    /// current version.
+    /// </para>
+    /// <para>
+    /// In a future version, a parallel accumulation kernel may be added for higher
+    /// throughput. When that happens, setting this option to <c>true</c> will select the
+    /// deterministic (sequential) accumulation path, while <c>false</c> will allow the
+    /// non-deterministic (parallel, potentially faster) path.
+    /// </para>
+    /// </remarks>
     public bool BestEffortDeterministic { get; set; }
 
     /// <summary>
