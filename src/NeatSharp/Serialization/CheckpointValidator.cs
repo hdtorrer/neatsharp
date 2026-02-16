@@ -85,6 +85,7 @@ public sealed class CheckpointValidator : ICheckpointValidator
     {
         if (checkpoint.Population.Count > 0)
         {
+            bool hasConnections = false;
             int maxInnovationNumber = 0;
             int maxNodeId = 0;
 
@@ -92,6 +93,7 @@ public sealed class CheckpointValidator : ICheckpointValidator
             {
                 foreach (var connection in genome.Connections)
                 {
+                    hasConnections = true;
                     if (connection.InnovationNumber > maxInnovationNumber)
                     {
                         maxInnovationNumber = connection.InnovationNumber;
@@ -107,7 +109,7 @@ public sealed class CheckpointValidator : ICheckpointValidator
                 }
             }
 
-            if (checkpoint.NextInnovationNumber <= maxInnovationNumber)
+            if (hasConnections && checkpoint.NextInnovationNumber <= maxInnovationNumber)
             {
                 errors.Add(
                     $"NextInnovationNumber ({checkpoint.NextInnovationNumber}) must be strictly greater than " +
@@ -163,38 +165,12 @@ public sealed class CheckpointValidator : ICheckpointValidator
         // Fall back to structural equality
         foreach (var genome in checkpoint.Population)
         {
-            if (GenomesAreStructurallyEqual(genome, checkpoint.ChampionGenome))
+            if (genome.StructurallyEquals(checkpoint.ChampionGenome))
             {
                 return;
             }
         }
 
         errors.Add("Champion genome is not found in the population.");
-    }
-
-    private static bool GenomesAreStructurallyEqual(Genetics.Genome a, Genetics.Genome b)
-    {
-        if (a.Nodes.Count != b.Nodes.Count || a.Connections.Count != b.Connections.Count)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < a.Nodes.Count; i++)
-        {
-            if (a.Nodes[i] != b.Nodes[i])
-            {
-                return false;
-            }
-        }
-
-        for (int i = 0; i < a.Connections.Count; i++)
-        {
-            if (a.Connections[i] != b.Connections[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

@@ -19,9 +19,12 @@ public static class RngStateHelper
 {
     private const BindingFlags NonPublicInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
-    private static readonly FieldInfo ImplField = typeof(Random)
-        .GetField("_impl", NonPublicInstance)
-        ?? throw new InvalidOperationException("Cannot find Random._impl field. Runtime internals may have changed.");
+    private static readonly Lazy<FieldInfo> ImplFieldLazy = new(() =>
+        typeof(Random).GetField("_impl", NonPublicInstance)
+        ?? throw new InvalidOperationException(
+            $"Cannot find Random._impl field on .NET {Environment.Version}. " +
+            "Runtime internals may have changed. RNG state capture/restore requires " +
+            ".NET 8.0 or .NET 9.0 with the Net5CompatSeedImpl implementation."));
 
     private static readonly Lazy<(FieldInfo PrngField, FieldInfo SeedArrayField, FieldInfo InextField, FieldInfo InextpField)> Fields = new(DiscoverFields);
 
@@ -37,7 +40,7 @@ public static class RngStateHelper
 
         var (prngField, seedArrayField, inextField, inextpField) = Fields.Value;
 
-        var impl = ImplField.GetValue(random)
+        var impl = ImplFieldLazy.Value.GetValue(random)
             ?? throw new InvalidOperationException("Random._impl is null.");
 
         // Read the CompatPrng struct (boxed copy is fine for reading)
@@ -68,7 +71,7 @@ public static class RngStateHelper
 
         var (prngField, seedArrayField, inextField, inextpField) = Fields.Value;
 
-        var impl = ImplField.GetValue(random)
+        var impl = ImplFieldLazy.Value.GetValue(random)
             ?? throw new InvalidOperationException("Random._impl is null.");
 
         // Read the CompatPrng struct (boxed), modify it, then write it back.
@@ -93,7 +96,7 @@ public static class RngStateHelper
 
     private static (FieldInfo PrngField, FieldInfo SeedArrayField, FieldInfo InextField, FieldInfo InextpField) DiscoverFields()
     {
-        var impl = ImplField.GetValue(new Random(0))
+        var impl = ImplFieldLazy.Value.GetValue(new Random(0))
             ?? throw new InvalidOperationException("Random._impl is null.");
 
         var prngField = impl.GetType().GetField("_prng", NonPublicInstance)

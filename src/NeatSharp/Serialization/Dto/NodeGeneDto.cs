@@ -1,3 +1,4 @@
+using NeatSharp.Exceptions;
 using NeatSharp.Genetics;
 
 namespace NeatSharp.Serialization.Dto;
@@ -38,8 +39,14 @@ public class NodeGeneDto
     /// Maps this DTO back to a <see cref="NodeGene"/> domain object.
     /// </summary>
     /// <returns>A new <see cref="NodeGene"/> instance.</returns>
-    public NodeGene ToDomain() => new(
-        Id,
-        Enum.Parse<NodeType>(Type, ignoreCase: true),
-        ActivationFunction);
+    public NodeGene ToDomain()
+    {
+        if (!Enum.TryParse<NodeType>(Type, ignoreCase: true, out var nodeType))
+        {
+            throw new CheckpointCorruptionException(
+                [$"Node {Id} has unrecognized type '{Type}'. Expected one of: {string.Join(", ", Enum.GetNames<NodeType>())}"]);
+        }
+
+        return new NodeGene(Id, nodeType, ActivationFunction);
+    }
 }

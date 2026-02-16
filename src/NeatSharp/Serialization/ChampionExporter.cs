@@ -61,7 +61,7 @@ public sealed class ChampionExporter : IChampionExporter
 
     private static ArtifactMetadata BuildMetadata(int seed, string configurationHash)
     {
-        var libraryVersion = typeof(ChampionExporter).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var libraryVersion = LibraryInfo.Version;
         return new ArtifactMetadata(
             SchemaVersion: SchemaVersion.Current,
             LibraryVersion: libraryVersion,

@@ -14,12 +14,20 @@ namespace NeatSharp.Serialization;
 /// </summary>
 public sealed class CheckpointSerializer : ICheckpointSerializer
 {
+    private const long MaxCheckpointBytes = 100 * 1024 * 1024; // 100MB
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
+
+    private static readonly JsonDocumentOptions DocOptions = new() { MaxDepth = 64 };
+
+    private static readonly string SchemaVersionPropertyName =
+        SerializerOptions.PropertyNamingPolicy?.ConvertName(nameof(CheckpointDto.SchemaVersion))
+        ?? nameof(CheckpointDto.SchemaVersion);
 
     private readonly ICheckpointValidator _validator;
     private readonly ISchemaVersionMigrator _migrator;
@@ -67,26 +75,11 @@ public sealed class CheckpointSerializer : ICheckpointSerializer
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        // Step 1: Read stream into a JsonDocument to check schema version
-        JsonDocument jsonDoc;
-        try
-        {
-            jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (JsonException ex)
-        {
-            throw new CheckpointCorruptionException(
-                [$"Failed to parse checkpoint: the stream does not contain valid JSON. {ex.Message}"], ex);
-        }
+        // Step 1: Buffer the stream with size limit protection
+        var buffer = await ReadStreamWithLimitAsync(stream, MaxCheckpointBytes, cancellationToken).ConfigureAwait(false);
 
-        using var _ = jsonDoc;
-
-        // Step 2: Read "schemaVersion" property from root
-        string? schemaVersion = null;
-        if (jsonDoc.RootElement.TryGetProperty("schemaVersion", out var versionElement))
-        {
-            schemaVersion = versionElement.GetString();
-        }
+        // Step 2: Peek at schema version without full DOM parse
+        var schemaVersion = PeekSchemaVersion(buffer);
 
         if (string.IsNullOrEmpty(schemaVersion))
         {
@@ -94,58 +87,178 @@ public sealed class CheckpointSerializer : ICheckpointSerializer
             throw new SchemaVersionException("unknown", SchemaVersion.Current, isMigrationAvailable: false);
         }
 
-        // Step 3: Check if version matches current
-        if (schemaVersion != SchemaVersion.Current)
+        // Step 3: Happy path — version matches current, single-pass deserialization
+        if (schemaVersion == SchemaVersion.Current)
         {
-            // Step 4: Check if migration is needed and available
-            if (SchemaVersion.NeedsMigration(schemaVersion))
-            {
-                if (_migrator.CanMigrate(schemaVersion))
-                {
-                    using var migratedDoc = _migrator.Migrate(jsonDoc, schemaVersion);
-                    return DeserializeAndValidate(migratedDoc);
-                }
+            return DeserializeAndValidate(buffer);
+        }
 
-                SerializationLog.IncompatibleSchemaVersion(_logger, schemaVersion, SchemaVersion.Current);
-                throw new SchemaVersionException(schemaVersion, SchemaVersion.Current, isMigrationAvailable: false);
+        // Step 4: Check if migration is needed and available
+        if (SchemaVersion.NeedsMigration(schemaVersion))
+        {
+            if (_migrator.CanMigrate(schemaVersion))
+            {
+                using var jsonDoc = JsonDocument.Parse(buffer, DocOptions);
+                using var migratedDoc = _migrator.Migrate(jsonDoc, schemaVersion);
+                return DeserializeAndValidateFromDoc(migratedDoc);
             }
 
-            // Version is not compatible
             SerializationLog.IncompatibleSchemaVersion(_logger, schemaVersion, SchemaVersion.Current);
             throw new SchemaVersionException(schemaVersion, SchemaVersion.Current, isMigrationAvailable: false);
         }
 
-        // Step 5-8: Deserialize, map, validate, return
-        return DeserializeAndValidate(jsonDoc);
+        // Version is not compatible
+        SerializationLog.IncompatibleSchemaVersion(_logger, schemaVersion, SchemaVersion.Current);
+        throw new SchemaVersionException(schemaVersion, SchemaVersion.Current, isMigrationAvailable: false);
     }
 
-    private TrainingCheckpoint DeserializeAndValidate(JsonDocument jsonDoc)
+    /// <summary>
+    /// Single-pass deserialization from a byte buffer (happy path — no DOM parse needed).
+    /// </summary>
+    private TrainingCheckpoint DeserializeAndValidate(byte[] buffer)
     {
-        // Step 5: Deserialize to CheckpointDto
-        var dto = jsonDoc.Deserialize<CheckpointDto>(SerializerOptions)
-            ?? throw new CheckpointCorruptionException(["Failed to deserialize checkpoint: result was null."]);
+        CheckpointDto dto;
+        try
+        {
+            using var memStream = new MemoryStream(buffer, writable: false);
+            dto = JsonSerializer.Deserialize<CheckpointDto>(memStream, SerializerOptions)
+                ?? throw new CheckpointCorruptionException(["Failed to deserialize checkpoint: result was null."]);
+        }
+        catch (CheckpointCorruptionException) { throw; }
+        catch (JsonException ex)
+        {
+            throw new CheckpointCorruptionException(
+                [$"Failed to parse checkpoint JSON: {ex.Message}"], ex);
+        }
 
-        // Step 6: Map to TrainingCheckpoint
-        var checkpoint = dto.ToDomain();
+        return MapValidateAndReturn(dto);
+    }
 
-        // Step 7: Validate
+    /// <summary>
+    /// Deserialization from a JsonDocument (migration path).
+    /// </summary>
+    private TrainingCheckpoint DeserializeAndValidateFromDoc(JsonDocument jsonDoc)
+    {
+        CheckpointDto dto;
+        try
+        {
+            dto = jsonDoc.Deserialize<CheckpointDto>(SerializerOptions)
+                ?? throw new CheckpointCorruptionException(["Failed to deserialize checkpoint: result was null."]);
+        }
+        catch (CheckpointCorruptionException) { throw; }
+        catch (JsonException ex)
+        {
+            throw new CheckpointCorruptionException(
+                [$"Failed to parse checkpoint JSON: {ex.Message}"], ex);
+        }
+
+        return MapValidateAndReturn(dto);
+    }
+
+    /// <summary>
+    /// Maps a DTO to a domain checkpoint, validates, and checks configuration hash.
+    /// </summary>
+    private TrainingCheckpoint MapValidateAndReturn(CheckpointDto dto)
+    {
+        TrainingCheckpoint checkpoint;
+        try
+        {
+            checkpoint = dto.ToDomain();
+        }
+        catch (CheckpointCorruptionException) { throw; }
+        catch (Exception ex)
+        {
+            throw new CheckpointCorruptionException(
+                [$"Failed to map checkpoint data: {ex.Message}"], ex);
+        }
+
         var validationResult = _validator.Validate(checkpoint);
-
-        // Step 8: If validation fails, log error and throw
         if (!validationResult.IsValid)
         {
             SerializationLog.CheckpointValidationFailed(_logger, validationResult.Errors.Count);
             throw new CheckpointCorruptionException(validationResult.Errors);
         }
 
-        // Step 9: Check configuration hash for mismatch (warning only, doesn't prevent loading)
         var computedHash = ConfigurationHasher.ComputeHash(checkpoint.Configuration);
         if (!string.Equals(checkpoint.ConfigurationHash, computedHash, StringComparison.Ordinal))
         {
             SerializationLog.ConfigHashMismatch(_logger, checkpoint.ConfigurationHash, computedHash);
         }
 
-        // Step 10: Return validated checkpoint
         return checkpoint;
+    }
+
+    /// <summary>
+    /// Peeks at the schema version from a JSON buffer without a full DOM parse.
+    /// Uses Utf8JsonReader to scan top-level properties efficiently.
+    /// </summary>
+    private static string? PeekSchemaVersion(byte[] buffer)
+    {
+        try
+        {
+            var reader = new Utf8JsonReader(buffer.AsSpan(), new JsonReaderOptions { MaxDepth = 64 });
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+                return null;
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+
+                if (reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    if (reader.ValueTextEquals(SchemaVersionPropertyName))
+                    {
+                        return reader.Read() && reader.TokenType == JsonTokenType.String
+                            ? reader.GetString()
+                            : null;
+                    }
+
+                    // Skip the value of this non-matching property
+                    reader.Read();
+                    reader.TrySkip();
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Malformed JSON — return null; the full deserializer will produce
+            // a proper CheckpointCorruptionException with details
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the entire stream into a byte array, enforcing a maximum size limit.
+    /// </summary>
+    private static async Task<byte[]> ReadStreamWithLimitAsync(
+        Stream stream, long maxBytes, CancellationToken cancellationToken)
+    {
+        if (stream.CanSeek && stream.Length > maxBytes)
+        {
+            throw new CheckpointCorruptionException(
+                [$"Checkpoint stream exceeds the maximum allowed size of {maxBytes:N0} bytes (actual: {stream.Length:N0} bytes)."]);
+        }
+
+        using var memoryStream = new MemoryStream();
+        var readBuffer = new byte[81920];
+        long totalRead = 0;
+        int bytesRead;
+
+        while ((bytesRead = await stream.ReadAsync(readBuffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            totalRead += bytesRead;
+            if (totalRead > maxBytes)
+            {
+                throw new CheckpointCorruptionException(
+                    [$"Checkpoint stream exceeds the maximum allowed size of {maxBytes:N0} bytes."]);
+            }
+
+            memoryStream.Write(readBuffer, 0, bytesRead);
+        }
+
+        return memoryStream.ToArray();
     }
 }

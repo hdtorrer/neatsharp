@@ -110,10 +110,22 @@ internal sealed class NeatEvolver : INeatEvolver
             // (e) Restore species counter
             _speciationStrategy.RestoreState(checkpoint.NextSpeciesId);
 
-            // (f) Restore RNG
+            // (f) Restore RNG — the seed passed to Random() is irrelevant since
+            //     Restore() fully overwrites the internal state
             seed = checkpoint.Seed;
             random = new Random(seed);
             RngStateHelper.Restore(random, checkpoint.RngState);
+
+            // Verify the restore succeeded by round-tripping the state
+            var restoredState = RngStateHelper.Capture(random);
+            if (restoredState.Inext != checkpoint.RngState.Inext ||
+                restoredState.Inextp != checkpoint.RngState.Inextp ||
+                !restoredState.SeedArray.AsSpan().SequenceEqual(checkpoint.RngState.SeedArray))
+            {
+                throw new InvalidOperationException(
+                    "RNG state restore verification failed: the restored state does not match the checkpoint. " +
+                    "This may indicate a runtime incompatibility with the RNG state capture mechanism.");
+            }
 
             // (g) Restore generation counter — checkpoint.Generation is the number of
             //     completed generations. The checkpoint was captured AFTER speciation
@@ -612,6 +624,14 @@ internal sealed class NeatEvolver : INeatEvolver
         List<GenerationStatistics>? generationHistory,
         bool enableMetrics)
     {
+        // Build genome-to-index lookup for O(1) species member resolution
+        var genomeToIndex = new Dictionary<Genome, int>(
+            currentPopulation.Count, ReferenceEqualityComparer.Instance);
+        for (int i = 0; i < currentPopulation.Count; i++)
+        {
+            genomeToIndex[currentPopulation[i]] = i;
+        }
+
         // Build species checkpoints from current species list
         var speciesCheckpoints = new List<SpeciesCheckpoint>(species.Count);
         foreach (var s in species)
@@ -620,18 +640,14 @@ internal sealed class NeatEvolver : INeatEvolver
             var memberFitnesses = new List<double>();
             int repIndex = -1;
 
-            for (int i = 0; i < currentPopulation.Count; i++)
+            foreach (var (memberGenome, memberFitness) in s.Members)
             {
-                foreach (var (memberGenome, memberFitness) in s.Members)
+                if (genomeToIndex.TryGetValue(memberGenome, out int index))
                 {
-                    if (ReferenceEquals(currentPopulation[i], memberGenome))
-                    {
-                        memberIndices.Add(i);
-                        memberFitnesses.Add(memberFitness);
-                        if (ReferenceEquals(memberGenome, s.Representative))
-                            repIndex = i;
-                        break;
-                    }
+                    memberIndices.Add(index);
+                    memberFitnesses.Add(memberFitness);
+                    if (ReferenceEquals(memberGenome, s.Representative))
+                        repIndex = index;
                 }
             }
 
@@ -658,7 +674,7 @@ internal sealed class NeatEvolver : INeatEvolver
             generation + 1);
 
         // Build metadata
-        var libraryVersion = typeof(NeatEvolver).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var libraryVersion = LibraryInfo.Version;
         var metadata = new ArtifactMetadata(
             SchemaVersion: SchemaVersion.Current,
             LibraryVersion: libraryVersion,

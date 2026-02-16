@@ -61,7 +61,7 @@ public sealed class RngState
                 nameof(inextp));
         }
 
-        SeedArray = seedArray;
+        SeedArray = (int[])seedArray.Clone();
         Inext = inext;
         Inextp = inextp;
     }

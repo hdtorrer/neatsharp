@@ -94,7 +94,7 @@ public class CheckpointDto
             for (int i = 0; i < checkpoint.Population.Count; i++)
             {
                 var genome = checkpoint.Population[i];
-                if (GenomesAreEqual(genome, checkpoint.ChampionGenome))
+                if (genome.StructurallyEquals(checkpoint.ChampionGenome))
                 {
                     championIndex = i;
                     break;
@@ -111,7 +111,7 @@ public class CheckpointDto
         return new CheckpointDto
         {
             SchemaVersion = Serialization.SchemaVersion.Current,
-            Metadata = ArtifactMetadataDto.ToDto(checkpoint.Metadata),
+            Metadata = ArtifactMetadataDto.ToDto(checkpoint.Metadata with { SchemaVersion = Serialization.SchemaVersion.Current }),
             Population = checkpoint.Population.Select(GenomeDto.ToDto).ToList(),
             Species = checkpoint.Species.Select(SpeciesCheckpointDto.ToDto).ToList(),
             Counters = new CountersDto
@@ -178,26 +178,6 @@ public class CheckpointDto
             ConfigurationHash: ConfigurationHash,
             History: History,
             Metadata: Metadata.ToDomain());
-    }
-
-    private static bool GenomesAreEqual(Genome a, Genome b)
-    {
-        if (a.Nodes.Count != b.Nodes.Count || a.Connections.Count != b.Connections.Count)
-            return false;
-
-        for (int i = 0; i < a.Nodes.Count; i++)
-        {
-            if (a.Nodes[i] != b.Nodes[i])
-                return false;
-        }
-
-        for (int i = 0; i < a.Connections.Count; i++)
-        {
-            if (a.Connections[i] != b.Connections[i])
-                return false;
-        }
-
-        return true;
     }
 }
 

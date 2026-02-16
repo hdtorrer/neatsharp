@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NeatSharp.Configuration;
@@ -27,8 +26,7 @@ public static class ConfigurationHasher
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var json = JsonSerializer.Serialize(options, SerializerOptions);
-        var bytes = Encoding.UTF8.GetBytes(json);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(options, SerializerOptions);
         var hashBytes = SHA256.HashData(bytes);
 
         return Convert.ToHexString(hashBytes).ToLowerInvariant();

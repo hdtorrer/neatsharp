@@ -63,28 +63,21 @@ public class SchemaVersionException : CheckpointException
         }
 
         // Determine if the artifact is newer or older for more actionable guidance
-        try
-        {
-            var artifactParts = artifactVersion.Split('.');
-            var expectedParts = expectedVersion.Split('.');
+        var artifactParts = artifactVersion.Split('.');
+        var expectedParts = expectedVersion.Split('.');
 
-            if (artifactParts.Length == 3 && expectedParts.Length == 3 &&
-                int.TryParse(artifactParts[0], out var artifactMajor) &&
-                int.TryParse(expectedParts[0], out var expectedMajor))
-            {
-                if (artifactMajor > expectedMajor ||
-                    (artifactMajor == expectedMajor &&
-                     int.TryParse(artifactParts[1], out var artifactMinor) &&
-                     int.TryParse(expectedParts[1], out var expectedMinor) &&
-                     artifactMinor > expectedMinor))
-                {
-                    return $"{baseMessage} The artifact was created with a newer version of NEATSharp. Update the library to load this artifact.";
-                }
-            }
-        }
-        catch
+        if (artifactParts.Length == 3 && expectedParts.Length == 3 &&
+            int.TryParse(artifactParts[0], out var artifactMajor) &&
+            int.TryParse(expectedParts[0], out var expectedMajor))
         {
-            // Fall through to default message if version parsing fails
+            if (artifactMajor > expectedMajor ||
+                (artifactMajor == expectedMajor &&
+                 int.TryParse(artifactParts[1], out var artifactMinor) &&
+                 int.TryParse(expectedParts[1], out var expectedMinor) &&
+                 artifactMinor > expectedMinor))
+            {
+                return $"{baseMessage} The artifact was created with a newer version of NEATSharp. Update the library to load this artifact.";
+            }
         }
 
         return $"{baseMessage} No migration path is available. Re-export the artifact with the current library version.";

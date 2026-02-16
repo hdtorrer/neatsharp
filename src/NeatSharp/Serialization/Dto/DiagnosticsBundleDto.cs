@@ -48,7 +48,7 @@ public class DiagnosticsBundleDto
     public static DiagnosticsBundleDto ToDto(TrainingCheckpoint checkpoint)
     {
         var currentEnvironment = EnvironmentInfo.CreateCurrent();
-        var libraryVersion = typeof(DiagnosticsBundleDto).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        var libraryVersion = LibraryInfo.Version;
 
         var metadata = new ArtifactMetadata(
             SchemaVersion: Serialization.SchemaVersion.Current,
