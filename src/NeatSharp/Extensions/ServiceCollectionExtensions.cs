@@ -10,6 +10,8 @@ using NeatSharp.Evolution.Selection;
 using NeatSharp.Evolution.Speciation;
 using NeatSharp.Genetics;
 using NeatSharp.Reporting;
+using NeatSharp.Serialization;
+using NeatSharp.Serialization.Migration;
 
 namespace NeatSharp.Extensions;
 
@@ -81,6 +83,13 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IParentSelector, TournamentSelector>();
         services.AddSingleton<ReproductionAllocator>();
         services.AddSingleton<ReproductionOrchestrator>();
+
+        // Serialization: Checkpoint services (Spec 005)
+        services.AddSingleton<ICheckpointSerializer, CheckpointSerializer>();
+        services.AddSingleton<ICheckpointValidator, CheckpointValidator>();
+        services.AddSingleton<ISchemaVersionMigrator, SchemaVersionMigrator>();
+        services.AddSingleton<IChampionExporter, ChampionExporter>();
+        services.AddSingleton<IDiagnosticsBundleCreator, DiagnosticsBundleCreator>();
 
         return services;
     }

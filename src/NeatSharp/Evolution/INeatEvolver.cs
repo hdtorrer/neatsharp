@@ -45,6 +45,31 @@ public interface INeatEvolver
     Task<EvolutionResult> RunAsync(
         IEvaluationStrategy evaluator,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs a NEAT evolution with additional run options, including
+    /// checkpoint resume and per-generation checkpoint callbacks.
+    /// </summary>
+    /// <param name="evaluator">
+    /// The evaluation strategy used to assign fitness scores to genomes.
+    /// Create via <see cref="EvaluationStrategy"/> factory methods.
+    /// </param>
+    /// <param name="options">
+    /// Options controlling the run, including an optional checkpoint to resume
+    /// from and an optional callback invoked at each generation boundary.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Optional token to request graceful cancellation.
+    /// When cancelled, returns the best result found so far.
+    /// </param>
+    /// <returns>
+    /// The evolution result containing the champion, run history,
+    /// final population snapshot, and the seed used.
+    /// </returns>
+    Task<EvolutionResult> RunAsync(
+        IEvaluationStrategy evaluator,
+        EvolutionRunOptions options,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

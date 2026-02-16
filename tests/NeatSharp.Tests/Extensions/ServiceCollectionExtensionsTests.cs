@@ -11,6 +11,8 @@ using NeatSharp.Evolution.Speciation;
 using NeatSharp.Extensions;
 using NeatSharp.Genetics;
 using NeatSharp.Reporting;
+using NeatSharp.Serialization;
+using NeatSharp.Serialization.Migration;
 using Xunit;
 
 namespace NeatSharp.Tests.Extensions;
@@ -495,5 +497,75 @@ public class ServiceCollectionExtensionsTests
 
         factory1a.Should().BeSameAs(factory1b);
         factory1a.Should().NotBeSameAs(factory2);
+    }
+
+    // --- Serialization services (Spec 005) ---
+
+    [Fact]
+    public void AddNeatSharp_RegistersICheckpointSerializerAsSingleton()
+    {
+        var services = new ServiceCollection();
+        services.AddNeatSharp(o => o.Stopping.MaxGenerations = 100);
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+
+        var serializer1 = provider.GetRequiredService<ICheckpointSerializer>();
+        var serializer2 = provider.GetRequiredService<ICheckpointSerializer>();
+
+        serializer1.Should().NotBeNull();
+        serializer1.Should().BeOfType<CheckpointSerializer>();
+        serializer1.Should().BeSameAs(serializer2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersICheckpointValidatorAsSingleton()
+    {
+        var provider = BuildProviderWithDefaults();
+
+        var validator1 = provider.GetRequiredService<ICheckpointValidator>();
+        var validator2 = provider.GetRequiredService<ICheckpointValidator>();
+
+        validator1.Should().NotBeNull();
+        validator1.Should().BeOfType<CheckpointValidator>();
+        validator1.Should().BeSameAs(validator2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersISchemaVersionMigratorAsSingleton()
+    {
+        var provider = BuildProviderWithDefaults();
+
+        var migrator1 = provider.GetRequiredService<ISchemaVersionMigrator>();
+        var migrator2 = provider.GetRequiredService<ISchemaVersionMigrator>();
+
+        migrator1.Should().NotBeNull();
+        migrator1.Should().BeOfType<SchemaVersionMigrator>();
+        migrator1.Should().BeSameAs(migrator2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIChampionExporterAsSingleton()
+    {
+        var provider = BuildProviderWithDefaults();
+
+        var exporter1 = provider.GetRequiredService<IChampionExporter>();
+        var exporter2 = provider.GetRequiredService<IChampionExporter>();
+
+        exporter1.Should().NotBeNull();
+        exporter1.Should().BeOfType<ChampionExporter>();
+        exporter1.Should().BeSameAs(exporter2);
+    }
+
+    [Fact]
+    public void AddNeatSharp_RegistersIDiagnosticsBundleCreatorAsSingleton()
+    {
+        var provider = BuildProviderWithDefaults();
+
+        var creator1 = provider.GetRequiredService<IDiagnosticsBundleCreator>();
+        var creator2 = provider.GetRequiredService<IDiagnosticsBundleCreator>();
+
+        creator1.Should().NotBeNull();
+        creator1.Should().BeOfType<DiagnosticsBundleCreator>();
+        creator1.Should().BeSameAs(creator2);
     }
 }

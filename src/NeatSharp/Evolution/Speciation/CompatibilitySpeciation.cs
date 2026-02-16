@@ -24,6 +24,15 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
     }
 
     /// <inheritdoc />
+    public int NextSpeciesId => _nextSpeciesId;
+
+    /// <inheritdoc />
+    public void RestoreState(int nextSpeciesId)
+    {
+        _nextSpeciesId = nextSpeciesId;
+    }
+
+    /// <inheritdoc />
     public void Speciate(
         IReadOnlyList<(Genome Genome, double Fitness)> population,
         List<Species> species)

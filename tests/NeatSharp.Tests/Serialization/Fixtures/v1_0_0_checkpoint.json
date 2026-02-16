@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "1.0.0",
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "libraryVersion": "1.0.0",
+    "seed": 42,
+    "configurationHash": "b4bfb68dfce7a97cd0b19a2c1cb9da3f02e2c0462bd5eeb50a3e7d9773deb551",
+    "createdAtUtc": "2026-02-15T12:00:00Z",
+    "environment": {
+      "osDescription": "Windows 10",
+      "runtimeVersion": ".NET 8.0.0",
+      "architecture": "X64"
+    }
+  },
+  "population": [
+    {
+      "nodes": [
+        {
+          "id": 0,
+          "type": "input",
+          "activationFunction": "sigmoid"
+        },
+        {
+          "id": 1,
+          "type": "output",
+          "activationFunction": "sigmoid"
+        }
+      ],
+      "connections": [
+        {
+          "innovationNumber": 1,
+          "sourceNodeId": 0,
+          "targetNodeId": 1,
+          "weight": 0.5,
+          "isEnabled": true
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "id": 0,
+          "type": "input",
+          "activationFunction": "sigmoid"
+        },
+        {
+          "id": 1,
+          "type": "output",
+          "activationFunction": "sigmoid"
+        },
+        {
+          "id": 2,
+          "type": "hidden",
+          "activationFunction": "tanh"
+        }
+      ],
+      "connections": [
+        {
+          "innovationNumber": 1,
+          "sourceNodeId": 0,
+          "targetNodeId": 2,
+          "weight": 0.7,
+          "isEnabled": true
+        },
+        {
+          "innovationNumber": 2,
+          "sourceNodeId": 2,
+          "targetNodeId": 1,
+          "weight": -0.3,
+          "isEnabled": true
+        },
+        {
+          "innovationNumber": 3,
+          "sourceNodeId": 0,
+          "targetNodeId": 1,
+          "weight": 0.1,
+          "isEnabled": false
+        }
+      ]
+    }
+  ],
+  "species": [
+    {
+      "id": 1,
+      "representativeIndex": 0,
+      "bestFitnessEver": 0.95,
+      "generationsSinceImprovement": 3,
+      "memberIndices": [
+        0,
+        1
+      ],
+      "memberFitnesses": [
+        0.8,
+        0.95
+      ]
+    }
+  ],
+  "counters": {
+    "nextInnovationNumber": 4,
+    "nextNodeId": 3,
+    "nextSpeciesId": 2
+  },
+  "champion": {
+    "genomeIndex": 1,
+    "fitness": 0.95,
+    "generation": 0,
+    "genome": null
+  },
+  "generation": 1,
+  "seed": 42,
+  "rngState": {
+    "seedArray": [
+      0,
+      307240031,
+      39964631,
+      249683386,
+      811556705,
+      1804884275,
+      1593753640,
+      142793481,
+      1488972856,
+      1904649866,
+      294860256,
+      1522106415,
+      140434833,
+      1179276276,
+      636813332,
+      225565666,
+      444159912,
+      94854861,
+      1588010604,
+      1893897005,
+      107297186,
+      633436803,
+      1019975968,
+      1884852159,
+      2127618559,
+      1836412618,
+      1443174533,
+      1029840164,
+      734622011,
+      387479549,
+      1531736817,
+      807570777,
+      1018331537,
+      1735324986,
+      93500932,
+      2096601446,
+      1554923298,
+      2032772461,
+      1131120733,
+      1512164021,
+      145550304,
+      1015260028,
+      1927359021,
+      693143817,
+      1691336802,
+      613315891,
+      83675228,
+      283596538,
+      935034907,
+      1354912806,
+      70164646,
+      1733143382,
+      1467729320,
+      2056825178,
+      1335080299,
+      4358958
+    ],
+    "inext": 0,
+    "inextp": 21
+  },
+  "configuration": {
+    "inputCount": 2,
+    "outputCount": 1,
+    "populationSize": 150,
+    "seed": 42,
+    "stopping": {
+      "maxGenerations": 100,
+      "fitnessTarget": null,
+      "stagnationThreshold": null
+    },
+    "complexity": {
+      "maxNodes": null,
+      "maxConnections": null
+    },
+    "enableMetrics": true,
+    "mutation": {
+      "weightPerturbationRate": 0.8,
+      "weightReplacementRate": 0.1,
+      "addConnectionRate": 0.05,
+      "addNodeRate": 0.03,
+      "toggleEnableRate": 0.01,
+      "perturbationPower": 0.5,
+      "perturbationDistribution": "uniform",
+      "weightMinValue": -4,
+      "weightMaxValue": 4,
+      "maxAddConnectionAttempts": 20
+    },
+    "crossover": {
+      "crossoverRate": 0.75,
+      "interspeciesCrossoverRate": 0.001,
+      "disabledGeneInheritanceProbability": 0.75
+    },
+    "speciation": {
+      "excessCoefficient": 1,
+      "disjointCoefficient": 1,
+      "weightDifferenceCoefficient": 0.4,
+      "compatibilityThreshold": 3
+    },
+    "selection": {
+      "elitismThreshold": 5,
+      "stagnationThreshold": 15,
+      "survivalThreshold": 0.2,
+      "tournamentSize": 2
+    },
+    "complexityPenalty": {
+      "coefficient": 0,
+      "metric": "both"
+    },
+    "evaluation": {
+      "errorMode": "assignFitness",
+      "errorFitnessValue": 0
+    }
+  },
+  "configurationHash": "b4bfb68dfce7a97cd0b19a2c1cb9da3f02e2c0462bd5eeb50a3e7d9773deb551",
+  "history": {
+    "generations": [
+      {
+        "generation": 0,
+        "bestFitness": 0.8,
+        "averageFitness": 0.5,
+        "speciesCount": 1,
+        "speciesSizes": [
+          2
+        ],
+        "complexity": {
+          "averageNodes": 2.5,
+          "averageConnections": 2
+        },
+        "timing": {
+          "evaluation": "00:00:00.0100000",
+          "reproduction": "00:00:00.0050000",
+          "speciation": "00:00:00.0020000"
+        }
+      }
+    ],
+    "totalGenerations": 1
+  }
+}

@@ -24,6 +24,12 @@ public sealed class InnovationTracker : IInnovationTracker
     }
 
     /// <inheritdoc />
+    public int NextInnovationNumber => _nextInnovationNumber;
+
+    /// <inheritdoc />
+    public int NextNodeId => _nextNodeId;
+
+    /// <inheritdoc />
     public int GetConnectionInnovation(int sourceNodeId, int targetNodeId)
     {
         var key = (sourceNodeId, targetNodeId);
@@ -58,6 +64,15 @@ public sealed class InnovationTracker : IInnovationTracker
     /// <inheritdoc />
     public void NextGeneration()
     {
+        _connectionCache.Clear();
+        _nodeSplitCache.Clear();
+    }
+
+    /// <inheritdoc />
+    public void RestoreState(int nextInnovationNumber, int nextNodeId)
+    {
+        _nextInnovationNumber = nextInnovationNumber;
+        _nextNodeId = nextNodeId;
         _connectionCache.Clear();
         _nodeSplitCache.Clear();
     }
