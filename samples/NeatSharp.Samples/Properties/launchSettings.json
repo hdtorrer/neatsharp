@@ -6,6 +6,10 @@
     "GPU Benchmark": {
       "commandName": "Project",
       "commandLineArgs": "benchmark"
+    },
+    "Hybrid Benchmark": {
+      "commandName": "Project",
+      "commandLineArgs": "hybrid-benchmark"
     }
   }
 }
