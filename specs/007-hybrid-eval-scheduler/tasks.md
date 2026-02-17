@@ -19,7 +19,7 @@
 
 **Purpose**: Create directory structure for hybrid scheduler types and tests
 
-- [ ] T001 Create `Scheduling/` directory in `src/NeatSharp.Gpu/` and `tests/NeatSharp.Gpu.Tests/` per implementation plan
+- [X] T001 Create `Scheduling/` directory in `src/NeatSharp.Gpu/` and `tests/NeatSharp.Gpu.Tests/` per implementation plan
 
 ---
 
@@ -29,11 +29,11 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Create `SplitPolicyType` enum, `HybridOptions`, `AdaptivePidOptions`, and `CostModelOptions` configuration classes in `src/NeatSharp.Gpu/Configuration/HybridOptions.cs` per contracts/HybridOptions.cs and data-model.md
-- [ ] T003 [P] Create `IPartitionPolicy` interface and `PartitionResult` readonly record struct in `src/NeatSharp.Gpu/Scheduling/IPartitionPolicy.cs` and `src/NeatSharp.Gpu/Scheduling/PartitionResult.cs` per contracts/IPartitionPolicy.cs and data-model.md
-- [ ] T004 [P] Create `SchedulingMetrics` sealed record in `src/NeatSharp.Gpu/Scheduling/SchedulingMetrics.cs` and `FallbackEventInfo` readonly record struct in `src/NeatSharp.Gpu/Scheduling/FallbackEventInfo.cs` per contracts/SchedulingMetrics.cs and data-model.md
-- [ ] T005 [P] Create `ISchedulingMetricsReporter` interface in `src/NeatSharp.Gpu/Scheduling/ISchedulingMetricsReporter.cs` per contracts/ISchedulingMetricsReporter.cs
-- [ ] T006 Create `HybridOptionsValidator` implementing `IValidateOptions<HybridOptions>` in `src/NeatSharp.Gpu/Configuration/HybridOptionsValidator.cs` — validate StaticGpuFraction [0,1], MinPopulationForSplit [2,100000], GpuReprobeInterval [1,1000], Kp > 0, and sub-object ranges per data-model.md validation rules
+- [X] T002 [P] Create `SplitPolicyType` enum, `HybridOptions`, `AdaptivePidOptions`, and `CostModelOptions` configuration classes in `src/NeatSharp.Gpu/Configuration/HybridOptions.cs` per contracts/HybridOptions.cs and data-model.md
+- [X] T003 [P] Create `IPartitionPolicy` interface and `PartitionResult` readonly record struct in `src/NeatSharp.Gpu/Scheduling/IPartitionPolicy.cs` and `src/NeatSharp.Gpu/Scheduling/PartitionResult.cs` per contracts/IPartitionPolicy.cs and data-model.md
+- [X] T004 [P] Create `SchedulingMetrics` sealed record in `src/NeatSharp.Gpu/Scheduling/SchedulingMetrics.cs` and `FallbackEventInfo` readonly record struct in `src/NeatSharp.Gpu/Scheduling/FallbackEventInfo.cs` per contracts/SchedulingMetrics.cs and data-model.md
+- [X] T005 [P] Create `ISchedulingMetricsReporter` interface in `src/NeatSharp.Gpu/Scheduling/ISchedulingMetricsReporter.cs` per contracts/ISchedulingMetricsReporter.cs
+- [X] T006 Create `HybridOptionsValidator` implementing `IValidateOptions<HybridOptions>` in `src/NeatSharp.Gpu/Configuration/HybridOptionsValidator.cs` — validate StaticGpuFraction [0,1], MinPopulationForSplit [2,100000], GpuReprobeInterval [1,1000], Kp > 0, and sub-object ranges per data-model.md validation rules
 
 **Checkpoint**: All shared types compiled — user story implementation can now begin
 
@@ -49,15 +49,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Write `HybridOptionsValidatorTests` in `tests/NeatSharp.Gpu.Tests/Configuration/HybridOptionsValidatorTests.cs` — test valid defaults pass, invalid StaticGpuFraction/MinPopulationForSplit/GpuReprobeInterval/Kp=0 fail, boundary values
-- [ ] T008 [P] [US1] Write `StaticPartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/StaticPartitionPolicyTests.cs` — test 70/30 split, 0% GPU (all CPU), 100% GPU (all GPU), single genome, rounding behavior, index correctness, Update is no-op
-- [ ] T009 [P] [US1] Write `HybridBatchEvaluatorTests` (core scenarios) in `tests/NeatSharp.Gpu.Tests/Scheduling/HybridBatchEvaluatorTests.cs` — test concurrent dispatch with mock IBatchEvaluators, index-remapped setFitness merges correctly, no ID misalignment/duplication/omission (FR-005), population below MinPopulationForSplit delegates to single backend (FR-014), EnableHybrid=false passthrough (FR-012), metrics are emitted via ISchedulingMetricsReporter (FR-010)
+- [X] T007 [P] [US1] Write `HybridOptionsValidatorTests` in `tests/NeatSharp.Gpu.Tests/Configuration/HybridOptionsValidatorTests.cs` — test valid defaults pass, invalid StaticGpuFraction/MinPopulationForSplit/GpuReprobeInterval/Kp=0 fail, boundary values
+- [X] T008 [P] [US1] Write `StaticPartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/StaticPartitionPolicyTests.cs` — test 70/30 split, 0% GPU (all CPU), 100% GPU (all GPU), single genome, rounding behavior, index correctness, Update is no-op
+- [X] T009 [P] [US1] Write `HybridBatchEvaluatorTests` (core scenarios) in `tests/NeatSharp.Gpu.Tests/Scheduling/HybridBatchEvaluatorTests.cs` — test concurrent dispatch with mock IBatchEvaluators, index-remapped setFitness merges correctly, no ID misalignment/duplication/omission (FR-005), population below MinPopulationForSplit delegates to single backend (FR-014), EnableHybrid=false passthrough (FR-012), metrics are emitted via ISchedulingMetricsReporter (FR-010)
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `StaticPartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/StaticPartitionPolicy.cs` — assigns first `(1-gpuFraction)*count` genomes to CPU, rest to GPU per data-model.md StaticPartitionPolicy definition; deterministic, stateless; Update is no-op
-- [ ] T011 [US1] Implement `HybridBatchEvaluator` core in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — implements `IBatchEvaluator` as decorator wrapping CPU and GPU backends; partitions via `IPartitionPolicy`, dispatches concurrently via `Task.WhenAll` with index-remapped `setFitness` callbacks per R-004; handles `MinPopulationForSplit` threshold (FR-014); `EnableHybrid=false` passthrough (FR-012); creates and emits `SchedulingMetrics` per generation; implements `IDisposable` forwarding to inner evaluators; tracks generation counter
-- [ ] T012 [US1] Add `AddNeatSharpHybrid()` extension method to `src/NeatSharp.Gpu/Extensions/ServiceCollectionExtensions.cs` — registers HybridOptions with DataAnnotations + HybridOptionsValidator, resolves existing IBatchEvaluator (GPU) as GPU backend, resolves or creates a CPU IBatchEvaluator adapter from the existing IEvaluationStrategy registration as the CPU backend per R-008 step 3, registers IPartitionPolicy based on SplitPolicyType option, replaces IBatchEvaluator registration with HybridBatchEvaluator decorator wrapping both CPU and GPU backends per R-008 DI pattern
+- [X] T010 [US1] Implement `StaticPartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/StaticPartitionPolicy.cs` — assigns first `(1-gpuFraction)*count` genomes to CPU, rest to GPU per data-model.md StaticPartitionPolicy definition; deterministic, stateless; Update is no-op
+- [X] T011 [US1] Implement `HybridBatchEvaluator` core in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — implements `IBatchEvaluator` as decorator wrapping CPU and GPU backends; partitions via `IPartitionPolicy`, dispatches concurrently via `Task.WhenAll` with index-remapped `setFitness` callbacks per R-004; handles `MinPopulationForSplit` threshold (FR-014); `EnableHybrid=false` passthrough (FR-012); creates and emits `SchedulingMetrics` per generation; implements `IDisposable` forwarding to inner evaluators; tracks generation counter
+- [X] T012 [US1] Add `AddNeatSharpHybrid()` extension method to `src/NeatSharp.Gpu/Extensions/ServiceCollectionExtensions.cs` — registers HybridOptions with DataAnnotations + HybridOptionsValidator, resolves existing IBatchEvaluator (GPU) as GPU backend, resolves or creates a CPU IBatchEvaluator adapter from the existing IEvaluationStrategy registration as the CPU backend per R-008 step 3, registers IPartitionPolicy based on SplitPolicyType option, replaces IBatchEvaluator registration with HybridBatchEvaluator decorator wrapping both CPU and GPU backends per R-008 DI pattern
 
 **Checkpoint**: Static hybrid evaluation works end-to-end — genomes split, evaluated concurrently, results merged correctly
 
@@ -73,13 +73,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US2] Write `PidControllerTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/PidControllerTests.cs` — test zero error produces no adjustment, positive error (CPU idle) decreases GPU fraction, negative error (GPU idle) increases GPU fraction, output clamped to [0,1], anti-windup stops integral accumulation at saturation per R-001, convergence within 10 steps for synthetic steady-state workload, derivative dampens oscillation
-- [ ] T014 [P] [US2] Write `AdaptivePartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/AdaptivePartitionPolicyTests.cs` — test initial GPU fraction from options, Update feeds PID controller with idle-time error, GPU fraction adjusts after Update, partition uses current PID-controlled fraction, convergence behavior over multiple updates
+- [X] T013 [P] [US2] Write `PidControllerTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/PidControllerTests.cs` — test zero error produces no adjustment, positive error (CPU idle) decreases GPU fraction, negative error (GPU idle) increases GPU fraction, output clamped to [0,1], anti-windup stops integral accumulation at saturation per R-001, convergence within 10 steps for synthetic steady-state workload, derivative dampens oscillation
+- [X] T014 [P] [US2] Write `AdaptivePartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/AdaptivePartitionPolicyTests.cs` — test initial GPU fraction from options, Update feeds PID controller with idle-time error, GPU fraction adjusts after Update, partition uses current PID-controlled fraction, convergence behavior over multiple updates
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement `PidController` in `src/NeatSharp.Gpu/Scheduling/PidController.cs` — discrete PID with error signal `(gpuIdleTime - cpuIdleTime) / max(cpuTime, gpuTime)` (positive error → GPU has spare capacity → increase GPU fraction), default gains Kp=0.5/Ki=0.1/Kd=0.05, output clamped to [0,1], conditional integration anti-windup per R-001, state reset on GPU failure recovery
-- [ ] T016 [US2] Implement `AdaptivePartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/AdaptivePartitionPolicy.cs` — implements `IPartitionPolicy`, contains `PidController` state, performs a count-based split (same algorithm as StaticPartitionPolicy) using the PID-controlled GPU fraction; does not wrap StaticPartitionPolicy (self-contained per data-model.md), Update computes error from SchedulingMetrics latencies and feeds PID controller per R-001
+- [X] T015 [US2] Implement `PidController` in `src/NeatSharp.Gpu/Scheduling/PidController.cs` — discrete PID with error signal `(gpuIdleTime - cpuIdleTime) / max(cpuTime, gpuTime)` (positive error → GPU has spare capacity → increase GPU fraction), default gains Kp=0.5/Ki=0.1/Kd=0.05, output clamped to [0,1], conditional integration anti-windup per R-001, state reset on GPU failure recovery
+- [X] T016 [US2] Implement `AdaptivePartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/AdaptivePartitionPolicy.cs` — implements `IPartitionPolicy`, contains `PidController` state, performs a count-based split (same algorithm as StaticPartitionPolicy) using the PID-controlled GPU fraction; does not wrap StaticPartitionPolicy (self-contained per data-model.md), Update computes error from SchedulingMetrics latencies and feeds PID controller per R-001
 
 **Checkpoint**: Adaptive partitioning converges to optimal split within 10 generations on steady-state workloads
 
@@ -95,11 +95,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [US3] Write GPU fallback test scenarios in `tests/NeatSharp.Gpu.Tests/Scheduling/HybridBatchEvaluatorTests.cs` — test GPU exception triggers CPU fallback for remaining genomes (FR-007), no genomes lost/duplicated during fallback, fallback warning logged with reason and rerouted count (FR-008), subsequent generations use CPU-only (FR-009), re-probe after N generations restores hybrid mode, re-probe failure continues CPU-only, OperationCanceledException is not caught as GPU failure, GPU failure on first generation (no throughput history) defaults to CPU, no GPU available at startup (GPU backend fails on first initialization) logs warning and operates CPU-only from generation 1 with no error (edge case per spec.md)
+- [X] T017 [US3] Write GPU fallback test scenarios in `tests/NeatSharp.Gpu.Tests/Scheduling/HybridBatchEvaluatorTests.cs` — test GPU exception triggers CPU fallback for remaining genomes (FR-007), no genomes lost/duplicated during fallback, fallback warning logged with reason and rerouted count (FR-008), subsequent generations use CPU-only (FR-009), re-probe after N generations restores hybrid mode, re-probe failure continues CPU-only, OperationCanceledException is not caught as GPU failure, GPU failure on first generation (no throughput history) defaults to CPU, no GPU available at startup (GPU backend fails on first initialization) logs warning and operates CPU-only from generation 1 with no error (edge case per spec.md)
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Add GPU failure detection, CPU fallback rerouting, and periodic re-probe logic to `HybridBatchEvaluator` in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — catch all exceptions from GPU backend except OperationCanceledException per R-003, reroute GPU-partition genomes to CPU backend for current generation, mark GPU unavailable and reset re-probe counter, track `_generationsSinceGpuFailure`, every `GpuReprobeInterval` generations attempt GPU re-initialization, log warning with failure details and genome count rerouted (FR-008), populate FallbackEventInfo in SchedulingMetrics
+- [X] T018 [US3] Add GPU failure detection, CPU fallback rerouting, and periodic re-probe logic to `HybridBatchEvaluator` in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — catch all exceptions from GPU backend except OperationCanceledException per R-003, reroute GPU-partition genomes to CPU backend for current generation, mark GPU unavailable and reset re-probe counter, track `_generationsSinceGpuFailure`, every `GpuReprobeInterval` generations attempt GPU re-initialization, log warning with failure details and genome count rerouted (FR-008), populate FallbackEventInfo in SchedulingMetrics
 
 **Checkpoint**: GPU failures handled transparently — training continues without data loss, GPU re-probed periodically
 
@@ -115,13 +115,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US4] Write `SchedulingMetricsTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/SchedulingMetricsTests.cs` — test all metrics fields populated (genome counts, throughput genomes/sec, latency TimeSpan, split ratio, active policy, scheduler overhead), FallbackEventInfo populated on fallback, metrics immutability, throughput calculation correctness
-- [ ] T020 [P] [US4] Write `LoggingMetricsReporterTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/SchedulingMetricsTests.cs` — test metrics summary logged at Information level, fallback events logged at Warning level, null fallback event not logged as warning
+- [X] T019 [P] [US4] Write `SchedulingMetricsTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/SchedulingMetricsTests.cs` — test all metrics fields populated (genome counts, throughput genomes/sec, latency TimeSpan, split ratio, active policy, scheduler overhead), FallbackEventInfo populated on fallback, metrics immutability, throughput calculation correctness
+- [X] T020 [P] [US4] Write `LoggingMetricsReporterTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/SchedulingMetricsTests.cs` — test metrics summary logged at Information level, fallback events logged at Warning level, null fallback event not logged as warning
 
 ### Implementation for User Story 4
 
-- [ ] T021 [US4] Implement `LoggingMetricsReporter` in `src/NeatSharp.Gpu/Scheduling/LoggingMetricsReporter.cs` — implements `ISchedulingMetricsReporter`, logs per-generation summary at Information level (genome counts, throughput, split ratio, overhead), logs fallback events at Warning level with timestamp/reason/rerouted count per data-model.md
-- [ ] T022 [US4] Verify and enhance full metrics emission in `HybridBatchEvaluator` in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — ensure scheduler overhead timing uses Stopwatch excluding backend evaluation, throughput calculated as genomeCount/latency.TotalSeconds, split ratio reflects active policy's GPU fraction, all FR-010 fields populated, register LoggingMetricsReporter as default in AddNeatSharpHybrid() via TryAddSingleton
+- [X] T021 [US4] Implement `LoggingMetricsReporter` in `src/NeatSharp.Gpu/Scheduling/LoggingMetricsReporter.cs` — implements `ISchedulingMetricsReporter`, logs per-generation summary at Information level (genome counts, throughput, split ratio, overhead), logs fallback events at Warning level with timestamp/reason/rerouted count per data-model.md
+- [X] T022 [US4] Verify and enhance full metrics emission in `HybridBatchEvaluator` in `src/NeatSharp.Gpu/Scheduling/HybridBatchEvaluator.cs` — ensure scheduler overhead timing uses Stopwatch excluding backend evaluation, throughput calculated as genomeCount/latency.TotalSeconds, split ratio reflects active policy's GPU fraction, all FR-010 fields populated, register LoggingMetricsReporter as default in AddNeatSharpHybrid() via TryAddSingleton
 
 **Checkpoint**: All per-generation metrics available and logged — operators can diagnose throughput imbalances and verify adaptive convergence
 
@@ -137,11 +137,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T023 [US5] Write `CostBasedPartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/CostBasedPartitionPolicyTests.cs` — test cost formula `alpha*nodeCount + beta*connectionCount` per R-002, genomes sorted by cost descending with highest-cost assigned to GPU, configurable NodeWeight/ConnectionWeight, uniform complexity degrades gracefully to even split, GPU fraction respected, Update is no-op, index mapping correctness
+- [X] T023 [US5] Write `CostBasedPartitionPolicyTests` in `tests/NeatSharp.Gpu.Tests/Scheduling/CostBasedPartitionPolicyTests.cs` — test cost formula `alpha*nodeCount + beta*connectionCount` per R-002, genomes sorted by cost descending with highest-cost assigned to GPU, configurable NodeWeight/ConnectionWeight, uniform complexity degrades gracefully to even split, GPU fraction respected, Update is no-op, index mapping correctness
 
 ### Implementation for User Story 5
 
-- [ ] T024 [US5] Implement `CostBasedPartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/CostBasedPartitionPolicy.cs` — implements `IPartitionPolicy`, computes `cost = NodeWeight * genome.NodeCount + ConnectionWeight * genome.ConnectionCount` per R-002, sorts genomes by cost descending, assigns highest-cost genomes to GPU up to configured GPU fraction, uses `StaticGpuFraction` from options, Update is no-op
+- [X] T024 [US5] Implement `CostBasedPartitionPolicy` in `src/NeatSharp.Gpu/Scheduling/CostBasedPartitionPolicy.cs` — implements `IPartitionPolicy`, computes `cost = NodeWeight * genome.NodeCount + ConnectionWeight * genome.ConnectionCount` per R-002, sorts genomes by cost descending, assigns highest-cost genomes to GPU up to configured GPU fraction, uses `StaticGpuFraction` from options, Update is no-op
 
 **Checkpoint**: Cost-based partitioning routes complex genomes to GPU, simple to CPU — throughput improvement on diverse populations
 
@@ -151,10 +151,10 @@
 
 **Purpose**: End-to-end integration tests, quickstart validation, and build verification
 
-- [ ] T025 Write `HybridTrainingIntegrationTests` in `tests/NeatSharp.Gpu.Tests/Integration/HybridTrainingIntegrationTests.cs` — end-to-end test with all three policies (static, adaptive, cost-based), verify CPU determinism preserved when hybrid disabled (SC-003), verify scheduler overhead < 5% of slower backend (FR-018), GPU integration tests gated with `[Trait("Category", "GPU")]`
-- [ ] T026 Run quickstart.md validation — verify all code samples from `specs/007-hybrid-eval-scheduler/quickstart.md` compile and execute correctly with the implemented types
-- [ ] T027 Build verification — ensure `dotnet build` succeeds for both net8.0 and net9.0 targets with zero warnings, `dotnet test` passes all new tests, no nullable warnings
-- [ ] T028 [GPU] Create benchmark report in `specs/007-hybrid-eval-scheduler/benchmark-report.md` — compare hybrid vs. CPU-only vs. GPU-only across 3 population sizes (200, 1000, 5000) and 2 workload profiles (transfer-dominated, compute-dominated) per SC-007; include cost-based vs. uniform partitioning throughput comparison on bimodal-complexity population (50% <10 nodes, 50% >100 nodes) validating SC-006 (≥10% throughput improvement); document methodology, hardware, and reproducible steps
+- [X] T025 Write `HybridTrainingIntegrationTests` in `tests/NeatSharp.Gpu.Tests/Integration/HybridTrainingIntegrationTests.cs` — end-to-end test with all three policies (static, adaptive, cost-based), verify CPU determinism preserved when hybrid disabled (SC-003), verify scheduler overhead < 5% of slower backend (FR-018), GPU integration tests gated with `[Trait("Category", "GPU")]`
+- [X] T026 Run quickstart.md validation — verify all code samples from `specs/007-hybrid-eval-scheduler/quickstart.md` compile and execute correctly with the implemented types
+- [X] T027 Build verification — ensure `dotnet build` succeeds for both net8.0 and net9.0 targets with zero warnings, `dotnet test` passes all new tests, no nullable warnings
+- [X] T028 [GPU] Create benchmark report in `specs/007-hybrid-eval-scheduler/benchmark-report.md` — compare hybrid vs. CPU-only vs. GPU-only across 3 population sizes (200, 1000, 5000) and 2 workload profiles (transfer-dominated, compute-dominated) per SC-007; include cost-based vs. uniform partitioning throughput comparison on bimodal-complexity population (50% <10 nodes, 50% >100 nodes) validating SC-006 (≥10% throughput improvement); document methodology, hardware, and reproducible steps
 
 ---
 
