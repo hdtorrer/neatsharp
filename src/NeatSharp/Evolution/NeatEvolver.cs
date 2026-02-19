@@ -298,7 +298,9 @@ internal sealed class NeatEvolver : INeatEvolver
             {
                 metricsSpeciesSizes = new List<int>(species.Count);
                 foreach (var s in species)
+                {
                     metricsSpeciesSizes.Add(s.Members.Count);
+                }
 
                 ComputeComplexityStats(currentPopulation, out metricsAvgNodes, out metricsAvgConns);
             }
@@ -398,9 +400,13 @@ internal sealed class NeatEvolver : INeatEvolver
         // This allows the general Exception handler to preserve partial results
         // from batch evaluators (per the IBatchEvaluator error contract).
         if (scored.Length < population.Count)
+        {
             scored = new bool[population.Count];
+        }
         else
+        {
             Array.Fill(scored, false);
+        }
 
         // Evaluate — cancellation token is NOT passed to the evaluation strategy.
         // The current generation always completes fully; cancellation is only
@@ -444,7 +450,9 @@ internal sealed class NeatEvolver : INeatEvolver
             for (int i = 0; i < fitness.Length; i++)
             {
                 if (!scored[i])
+                {
                     fitness[i] = errorFitness;
+                }
             }
             TrainingLog.EvaluationFailed(_logger, -1, ex.Message);
         }
@@ -477,12 +485,16 @@ internal sealed class NeatEvolver : INeatEvolver
         // Detect extinct species via HashSet lookup — O(prev + current)
         var currentSpeciesIds = new HashSet<int>(species.Count);
         foreach (var s in species)
+        {
             currentSpeciesIds.Add(s.Id);
+        }
 
         foreach (int prevId in previousSpeciesIds)
         {
             if (!currentSpeciesIds.Contains(prevId))
+            {
                 TrainingLog.SpeciesExtinct(_logger, prevId, generation);
+            }
         }
 
         // Log stagnation warnings
@@ -565,7 +577,10 @@ internal sealed class NeatEvolver : INeatEvolver
         {
             var result = new List<Genome>(offspring.Count);
             foreach (var (genome, _) in offspring)
+            {
                 result.Add(genome);
+            }
+
             return result;
         }
 
@@ -581,9 +596,14 @@ internal sealed class NeatEvolver : INeatEvolver
         {
             bool overLimit = false;
             if (maxNodes.HasValue && genome.Nodes.Count > maxNodes.Value)
+            {
                 overLimit = true;
+            }
+
             if (maxConnections.HasValue && genome.Connections.Count > maxConnections.Value)
+            {
                 overLimit = true;
+            }
 
             if (overLimit
                 && speciesById.TryGetValue(sourceSpeciesId, out var parentSpecies)
@@ -594,7 +614,9 @@ internal sealed class NeatEvolver : INeatEvolver
                 for (int i = 1; i < parentSpecies.Members.Count; i++)
                 {
                     if (parentSpecies.Members[i].Fitness > champion.Fitness)
+                    {
                         champion = parentSpecies.Members[i];
+                    }
                 }
                 population.Add(champion.Genome);
             }
@@ -647,12 +669,16 @@ internal sealed class NeatEvolver : INeatEvolver
                     memberIndices.Add(index);
                     memberFitnesses.Add(memberFitness);
                     if (ReferenceEquals(memberGenome, s.Representative))
+                    {
                         repIndex = index;
+                    }
                 }
             }
 
             if (repIndex == -1 && memberIndices.Count > 0)
+            {
                 repIndex = memberIndices[0]; // fallback
+            }
 
             speciesCheckpoints.Add(new SpeciesCheckpoint(
                 s.Id, repIndex, s.BestFitnessEver, s.GenerationsSinceImprovement,
@@ -785,14 +811,21 @@ internal sealed class NeatEvolver : INeatEvolver
         double max = double.NegativeInfinity;
         foreach (double f in fitness)
         {
-            if (f > max) max = f;
+            if (f > max)
+            {
+                max = f;
+            }
         }
         return max;
     }
 
     private static double GetAverageFitness(double[] fitness)
     {
-        if (fitness.Length == 0) return 0.0;
+        if (fitness.Length == 0)
+        {
+            return 0.0;
+        }
+
         double sum = 0.0;
         foreach (double f in fitness)
         {

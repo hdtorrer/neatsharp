@@ -18,5 +18,5 @@ public interface IRunReporter
     /// </summary>
     /// <param name="result">The evolution result to summarize.</param>
     /// <returns>A formatted text summary of the run.</returns>
-    string GenerateSummary(EvolutionResult result);
+    public string GenerateSummary(EvolutionResult result);
 }

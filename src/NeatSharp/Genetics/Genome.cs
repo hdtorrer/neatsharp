@@ -101,9 +101,13 @@ public sealed class Genome
         foreach (var node in nodesCopy)
         {
             if (node.Type == NodeType.Input)
+            {
                 inputCount++;
+            }
             else if (node.Type == NodeType.Output)
+            {
                 outputCount++;
+            }
         }
 
         if (inputCount == 0)

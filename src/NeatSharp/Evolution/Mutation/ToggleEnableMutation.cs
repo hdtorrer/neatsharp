@@ -11,7 +11,9 @@ public sealed class ToggleEnableMutation : IMutationOperator
     public Genome Mutate(Genome genome, Random random, IInnovationTracker tracker)
     {
         if (genome.Connections.Count == 0)
+        {
             return genome;
+        }
 
         int index = random.Next(genome.Connections.Count);
 

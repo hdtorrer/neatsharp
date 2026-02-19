@@ -146,7 +146,11 @@ public class AddConnectionMutationTests
         var adjacency = new Dictionary<int, List<int>>();
         foreach (var conn in genome.Connections)
         {
-            if (!conn.IsEnabled) continue;
+            if (!conn.IsEnabled)
+            {
+                continue;
+            }
+
             if (!adjacency.TryGetValue(conn.SourceNodeId, out var targets))
             {
                 targets = [];
@@ -163,7 +167,9 @@ public class AddConnectionMutationTests
         {
             var start = white.First();
             if (DfsHasCycle(start, adjacency, white, gray))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -180,9 +186,14 @@ public class AddConnectionMutationTests
             foreach (int neighbor in neighbors)
             {
                 if (gray.Contains(neighbor))
+                {
                     return true; // back edge → cycle
+                }
+
                 if (white.Contains(neighbor) && DfsHasCycle(neighbor, adjacency, white, gray))
+                {
                     return true;
+                }
             }
         }
 

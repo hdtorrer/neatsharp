@@ -15,13 +15,17 @@ public sealed class RouletteWheelSelector : IParentSelector
     public Genome Select(IReadOnlyList<(Genome Genome, double Fitness)> candidates, Random random)
     {
         if (candidates.Count == 1)
+        {
             return candidates[0].Genome;
+        }
 
         double minFitness = candidates[0].Fitness;
         for (int i = 1; i < candidates.Count; i++)
         {
             if (candidates[i].Fitness < minFitness)
+            {
                 minFitness = candidates[i].Fitness;
+            }
         }
 
         double shift = minFitness <= 0 ? Math.Abs(minFitness) + Epsilon : 0.0;
@@ -39,7 +43,9 @@ public sealed class RouletteWheelSelector : IParentSelector
         {
             accumulated += candidates[i].Fitness + shift;
             if (accumulated > roll)
+            {
                 return candidates[i].Genome;
+            }
         }
 
         // Fallback for floating-point edge case

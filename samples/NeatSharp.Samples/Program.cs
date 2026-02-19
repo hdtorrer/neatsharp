@@ -83,6 +83,12 @@ if (args.Length > 0 && args[0] == "benchmark")
     return;
 }
 
+if (args.Length > 0 && args[0] == "cart-pole")
+{
+    await NeatSharp.Samples.CartPole.CartPoleExample.RunAsync();
+    return;
+}
+
 await RunXor();
 Console.WriteLine();
 await RunSineApproximation();

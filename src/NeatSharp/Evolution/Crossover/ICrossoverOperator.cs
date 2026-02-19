@@ -17,7 +17,7 @@ public interface ICrossoverOperator
     /// <param name="parent2Fitness">Fitness score of the second parent.</param>
     /// <param name="random">Seeded RNG for deterministic behavior.</param>
     /// <returns>A new offspring genome.</returns>
-    Genome Cross(
+    public Genome Cross(
         Genome parent1, double parent1Fitness,
         Genome parent2, double parent2Fitness,
         Random random);

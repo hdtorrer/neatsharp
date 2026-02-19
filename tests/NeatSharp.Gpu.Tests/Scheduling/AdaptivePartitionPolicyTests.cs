@@ -43,18 +43,19 @@ public class AdaptivePartitionPolicyTests
         int generation = 1,
         int cpuCount = 5,
         int gpuCount = 5) => new()
-    {
-        Generation = generation,
-        CpuGenomeCount = cpuCount,
-        GpuGenomeCount = gpuCount,
-        CpuThroughput = cpuCount / Math.Max(cpuLatency.TotalSeconds, 0.001),
-        GpuThroughput = gpuCount / Math.Max(gpuLatency.TotalSeconds, 0.001),
-        CpuLatency = cpuLatency,
-        GpuLatency = gpuLatency,
-        SplitRatio = 0.5,
-        ActivePolicy = SplitPolicyType.Adaptive,
-        SchedulerOverhead = TimeSpan.FromMilliseconds(1)
-    };
+        {
+            Generation = generation,
+            CpuGenomeCount = cpuCount,
+            GpuGenomeCount = gpuCount,
+            CpuThroughput = cpuCount / Math.Max(cpuLatency.TotalSeconds, 0.001),
+            GpuThroughput = gpuCount / Math.Max(gpuLatency.TotalSeconds, 0.001),
+            CpuLatency = cpuLatency,
+            GpuLatency = gpuLatency,
+            SplitRatio = 0.5,
+            ActivePolicy = SplitPolicyType.Adaptive,
+
+            SchedulerOverhead = TimeSpan.FromMilliseconds(1)
+        };
 
     // --- Initial GPU fraction matches options ---
 

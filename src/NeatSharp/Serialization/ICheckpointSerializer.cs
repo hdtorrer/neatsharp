@@ -12,7 +12,7 @@ public interface ICheckpointSerializer
     /// <param name="stream">The stream to write to.</param>
     /// <param name="checkpoint">The checkpoint to serialize.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
-    Task SaveAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
+    public Task SaveAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deserializes a training checkpoint from the specified stream.
@@ -27,5 +27,5 @@ public interface ICheckpointSerializer
     /// <exception cref="Exceptions.CheckpointCorruptionException">
     /// Thrown when the loaded checkpoint fails structural validation.
     /// </exception>
-    Task<TrainingCheckpoint> LoadAsync(Stream stream, CancellationToken cancellationToken = default);
+    public Task<TrainingCheckpoint> LoadAsync(Stream stream, CancellationToken cancellationToken = default);
 }

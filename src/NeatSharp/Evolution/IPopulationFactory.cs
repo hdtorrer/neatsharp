@@ -25,7 +25,7 @@ public interface IPopulationFactory
     /// innovation numbers via the tracker's dedup cache.
     /// </param>
     /// <returns>A list of genomes with minimal topology and randomized weights.</returns>
-    IReadOnlyList<Genome> CreateInitialPopulation(
+    public IReadOnlyList<Genome> CreateInitialPopulation(
         int populationSize,
         int inputCount,
         int outputCount,

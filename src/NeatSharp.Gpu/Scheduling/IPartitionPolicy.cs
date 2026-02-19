@@ -18,12 +18,12 @@ public interface IPartitionPolicy
     /// When called from HybridBatchEvaluator, this is [0, 1, 2, ..., genomes.Count - 1].
     /// </param>
     /// <returns>A <see cref="PartitionResult"/> with disjoint CPU and GPU genome sets.</returns>
-    PartitionResult Partition(IReadOnlyList<IGenome> genomes, int[] originalIndices);
+    public PartitionResult Partition(IReadOnlyList<IGenome> genomes, int[] originalIndices);
 
     /// <summary>
     /// Feeds back metrics from a completed generation to inform the next partition.
     /// Called after each generation's evaluation completes.
     /// </summary>
     /// <param name="metrics">The scheduling metrics from the completed generation.</param>
-    void Update(SchedulingMetrics metrics);
+    public void Update(SchedulingMetrics metrics);
 }

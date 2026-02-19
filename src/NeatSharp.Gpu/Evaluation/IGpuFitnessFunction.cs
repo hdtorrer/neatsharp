@@ -38,7 +38,7 @@ public interface IGpuFitnessFunction
     /// <summary>
     /// Gets the number of test cases to evaluate each genome against.
     /// </summary>
-    int CaseCount { get; }
+    public int CaseCount { get; }
 
     /// <summary>
     /// Gets the number of output values produced per genome per test case.
@@ -47,7 +47,7 @@ public interface IGpuFitnessFunction
     /// This must match the network's output node count. Used by the evaluator
     /// to correctly size output buffers and slice per-genome results.
     /// </remarks>
-    int OutputCount { get; }
+    public int OutputCount { get; }
 
     /// <summary>
     /// Gets the flattened test case input data, row-major:
@@ -58,7 +58,7 @@ public interface IGpuFitnessFunction
     /// (from <see cref="NeatSharp.Configuration.NeatSharpOptions.InputCount"/>).
     /// Data is uploaded to the GPU once per generation.
     /// </remarks>
-    ReadOnlyMemory<float> InputCases { get; }
+    public ReadOnlyMemory<float> InputCases { get; }
 
     /// <summary>
     /// Computes the fitness score for a single genome given its outputs
@@ -73,5 +73,5 @@ public interface IGpuFitnessFunction
     /// <returns>
     /// The fitness score for this genome. Must be a finite, non-negative value.
     /// </returns>
-    double ComputeFitness(ReadOnlySpan<float> outputs);
+    public double ComputeFitness(ReadOnlySpan<float> outputs);
 }

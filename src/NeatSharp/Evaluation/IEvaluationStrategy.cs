@@ -23,7 +23,7 @@ public interface IEvaluationStrategy
     /// </param>
     /// <param name="cancellationToken">Token to observe for cancellation.</param>
     /// <returns>A task that completes when all genomes have been evaluated.</returns>
-    Task EvaluatePopulationAsync(
+    public Task EvaluatePopulationAsync(
         IReadOnlyList<IGenome> genomes,
         Action<int, double> setFitness,
         CancellationToken cancellationToken);

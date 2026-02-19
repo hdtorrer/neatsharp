@@ -36,7 +36,7 @@ public interface IBatchEvaluator
     /// all genomes receive the default error fitness.
     /// </para>
     /// </remarks>
-    Task EvaluateAsync(
+    public Task EvaluateAsync(
         IReadOnlyList<IGenome> genomes,
         Action<int, double> setFitness,
         CancellationToken cancellationToken);

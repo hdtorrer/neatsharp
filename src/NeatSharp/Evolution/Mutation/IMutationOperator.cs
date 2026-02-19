@@ -18,5 +18,5 @@ public interface IMutationOperator
     /// A new genome with the mutation applied, or the original genome unchanged
     /// if the mutation was not applicable (e.g., complexity limits reached, fully connected).
     /// </returns>
-    Genome Mutate(Genome genome, Random random, IInnovationTracker tracker);
+    public Genome Mutate(Genome genome, Random random, IInnovationTracker tracker);
 }

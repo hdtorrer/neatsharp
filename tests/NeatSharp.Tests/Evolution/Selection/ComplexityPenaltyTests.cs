@@ -50,14 +50,14 @@ public class ComplexityPenaltyTests
 
     private static NeatSharpOptions MakeOptions(
         double coefficient, ComplexityPenaltyMetric metric) => new()
-    {
-        PopulationSize = 100,
-        ComplexityPenalty =
         {
-            Coefficient = coefficient,
-            Metric = metric
-        }
-    };
+            PopulationSize = 100,
+            ComplexityPenalty =
+            {
+                Coefficient = coefficient,
+                Metric = metric
+            }
+        };
 
     private static ReproductionAllocator CreateSut(NeatSharpOptions options) =>
         new(Options.Create(options));

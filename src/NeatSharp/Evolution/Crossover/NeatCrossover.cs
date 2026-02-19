@@ -132,11 +132,15 @@ public sealed class NeatCrossover : ICrossoverOperator
         // Build lookup maps for both parents' nodes
         var fitterNodeMap = new Dictionary<int, NodeGene>();
         foreach (var node in fitter.Nodes)
+        {
             fitterNodeMap[node.Id] = node;
+        }
 
         var lessFitNodeMap = new Dictionary<int, NodeGene>();
         foreach (var node in lessFit.Nodes)
+        {
             lessFitNodeMap[node.Id] = node;
+        }
 
         // Add nodes referenced by inherited connections (prefer fitter parent's definition)
         foreach (var conn in inheritedConnections)
@@ -144,17 +148,25 @@ public sealed class NeatCrossover : ICrossoverOperator
             if (!nodeMap.ContainsKey(conn.SourceNodeId))
             {
                 if (fitterNodeMap.TryGetValue(conn.SourceNodeId, out var fitterNode))
+                {
                     nodeMap[conn.SourceNodeId] = fitterNode;
+                }
                 else if (lessFitNodeMap.TryGetValue(conn.SourceNodeId, out var lessFitNode))
+                {
                     nodeMap[conn.SourceNodeId] = lessFitNode;
+                }
             }
 
             if (!nodeMap.ContainsKey(conn.TargetNodeId))
             {
                 if (fitterNodeMap.TryGetValue(conn.TargetNodeId, out var fitterNode))
+                {
                     nodeMap[conn.TargetNodeId] = fitterNode;
+                }
                 else if (lessFitNodeMap.TryGetValue(conn.TargetNodeId, out var lessFitNode))
+                {
                     nodeMap[conn.TargetNodeId] = lessFitNode;
+                }
             }
         }
 

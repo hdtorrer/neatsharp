@@ -42,7 +42,7 @@ public interface INeatEvolver
     /// The evolution result containing the champion, run history,
     /// final population snapshot, and the seed used.
     /// </returns>
-    Task<EvolutionResult> RunAsync(
+    public Task<EvolutionResult> RunAsync(
         IEvaluationStrategy evaluator,
         CancellationToken cancellationToken = default);
 
@@ -66,7 +66,7 @@ public interface INeatEvolver
     /// The evolution result containing the champion, run history,
     /// final population snapshot, and the seed used.
     /// </returns>
-    Task<EvolutionResult> RunAsync(
+    public Task<EvolutionResult> RunAsync(
         IEvaluationStrategy evaluator,
         EvolutionRunOptions options,
         CancellationToken cancellationToken = default);

@@ -94,7 +94,9 @@ public class TournamentSelectorTests
             var random = new Random(seed);
             var result = sut.Select(candidates, random);
             if (ReferenceEquals(result, candidates[4].Genome))
+            {
                 highestSelectedCount++;
+            }
         }
 
         // With tournament size 4 out of 5 candidates, the highest fitness

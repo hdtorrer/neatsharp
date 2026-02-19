@@ -21,5 +21,5 @@ public interface ISchedulingMetricsReporter
     /// Called exactly once per generation after evaluation completes.
     /// </summary>
     /// <param name="metrics">Immutable metrics for the completed generation.</param>
-    void Report(SchedulingMetrics metrics);
+    public void Report(SchedulingMetrics metrics);
 }

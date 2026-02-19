@@ -48,7 +48,9 @@ public class WeightReplacementMutationTests
         for (int i = 0; i < result.Connections.Count; i++)
         {
             if (result.Connections[i].Weight != connections[i].Weight)
+            {
                 changedCount++;
+            }
         }
 
         changedCount.Should().Be(1, "exactly one connection weight should be replaced");

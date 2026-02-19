@@ -63,7 +63,9 @@ public class ToggleEnableMutationTests
         for (int i = 0; i < result.Connections.Count; i++)
         {
             if (result.Connections[i].IsEnabled != connections[i].IsEnabled)
+            {
                 toggledCount++;
+            }
         }
 
         toggledCount.Should().Be(1, "exactly one connection should be toggled");

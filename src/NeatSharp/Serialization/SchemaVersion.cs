@@ -81,10 +81,16 @@ public static class SchemaVersion
         (int Major, int Minor, int Patch) b)
     {
         int majorCmp = a.Major.CompareTo(b.Major);
-        if (majorCmp != 0) return majorCmp;
+        if (majorCmp != 0)
+        {
+            return majorCmp;
+        }
 
         int minorCmp = a.Minor.CompareTo(b.Minor);
-        if (minorCmp != 0) return minorCmp;
+        if (minorCmp != 0)
+        {
+            return minorCmp;
+        }
 
         return a.Patch.CompareTo(b.Patch);
     }

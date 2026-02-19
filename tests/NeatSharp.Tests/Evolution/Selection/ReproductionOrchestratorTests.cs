@@ -353,7 +353,9 @@ public class ReproductionOrchestratorTests
             GenerationsSinceImprovement = 0
         };
         for (int i = 0; i < 10; i++)
+        {
             species1.Members.Add((MakeGenome(1.0), 10.0));
+        }
 
         var species2 = new Species(2, MakeGenome(5.0))
         {
@@ -361,7 +363,9 @@ public class ReproductionOrchestratorTests
             GenerationsSinceImprovement = 0
         };
         for (int i = 0; i < 10; i++)
+        {
             species2.Members.Add((MakeGenome(5.0), 10.0));
+        }
 
         var sut = CreateSut(options);
         var random = new Random(42);
@@ -399,7 +403,9 @@ public class ReproductionOrchestratorTests
             GenerationsSinceImprovement = 0
         };
         for (int i = 0; i < 5; i++)
+        {
             species1.Members.Add((MakeGenome(1.0), 10.0));
+        }
 
         var sut = CreateSut(options);
         var random = new Random(42);
@@ -521,7 +527,10 @@ public class ReproductionOrchestratorTests
                     break;
                 }
             }
-            if (foundDifference) break;
+            if (foundDifference)
+            {
+                break;
+            }
         }
 
         foundDifference.Should().BeTrue("different seeds should produce different offspring");

@@ -71,7 +71,9 @@ public class NeatCrossoverTests
             var random = new Random(seed);
             var offspring = sut.Cross(parent1, 10.0, parent2, 10.0, random);
             if (offspring.Connections[0].Weight == 1.0)
+            {
                 fromParent1++;
+            }
         }
 
         // With equal fitness, expect roughly 50/50 — allow wide tolerance
@@ -246,7 +248,9 @@ public class NeatCrossoverTests
             var random = new Random(seed);
             var offspring = sut.Cross(parent1, 10.0, parent2, 10.0, random);
             if (!offspring.Connections[0].IsEnabled)
+            {
                 disabledCount++;
+            }
         }
 
         double disabledRatio = (double)disabledCount / totalTrials;
