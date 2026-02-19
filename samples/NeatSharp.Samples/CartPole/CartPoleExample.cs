@@ -17,7 +17,8 @@ namespace NeatSharp.Samples.CartPole;
 /// The Cart-Pole problem is a classic control benchmark: a pole is attached to a cart
 /// that moves along a frictionless track. The neural network receives 4 inputs
 /// (cart position, cart velocity, pole angle, pole angular velocity) and produces
-/// 1 output that determines force direction (+10N right if output > 0.5, else -10N left).
+/// 2 outputs that determine force magnitude and direction. Output 0 controls magnitude
+/// (scaled to [0, ForceMagnitude]), and output 1 controls direction (>0.5 = right, else left).
 ///
 /// Fitness is computed as the fraction of maximum time steps the pole remains balanced.
 /// A fitness of 1.0 means the network balanced the pole for the entire episode.
@@ -33,14 +34,14 @@ public static class CartPoleExample
         Console.WriteLine();
         Console.WriteLine("Goal: Evolve a neural network to balance an inverted pendulum on a cart.");
         Console.WriteLine("Inputs: cart position (x), cart velocity (x_dot), pole angle (theta), pole angular velocity (theta_dot)");
-        Console.WriteLine("Output: force direction (>0.5 = push right +10N, else push left -10N)");
+        Console.WriteLine("Outputs: force magnitude (0 to ForceMagnitude) + force direction (>0.5 = right, else left)");
         Console.WriteLine();
 
         // Cart-Pole physics configuration with canonical Barto/Stanley parameters
         var config = new CartPoleConfig();
 
         // Configure NEAT evolution:
-        // - 4 inputs (cart state) and 1 output (force direction)
+        // - 4 inputs (cart state) and 2 outputs (force magnitude + direction)
         // - Population of 150 genomes
         // - Fixed seed for reproducible results
         // - Stop after 100 generations or when fitness reaches 0.95 (9,500+ steps balanced)
@@ -49,7 +50,7 @@ public static class CartPoleExample
         {
             options.Speciation.CompatibilityThreshold = 3.0;
             options.InputCount = 4;    // x, x_dot, theta, theta_dot
-            options.OutputCount = 1;   // force direction
+            options.OutputCount = 2;   // force magnitude + direction
             options.PopulationSize = 150;
             options.Seed = 21;
             options.EnableMetrics = true;
@@ -79,7 +80,7 @@ public static class CartPoleExample
         {
             double totalFitness = 0;
 
-            Span<double> output = stackalloc double[1];
+            Span<double> output = stackalloc double[2];
 
             // Test from multiple starting conditions so the network must
             // actually use its inputs rather than applying constant force
@@ -101,11 +102,13 @@ public static class CartPoleExample
                         simulator.State.ThetaDot / 2.0                    // Normalize angular velocity
                     ];
 
-                    // Get network output and interpret as force direction
+                    // Get network outputs: magnitude + direction
                     genome.Activate(inputs, output);
 
-                    // Binary force: push right (+ForceMagnitude) if output > 0.5, else push left (-ForceMagnitude)
-                    double force = output[0] > 0.5 ? config.ForceMagnitude : -config.ForceMagnitude;
+                    // Output 0: force magnitude scaled to [0, ForceMagnitude]
+                    // Output 1: direction (>0.5 = right, else left)
+                    double magnitude = output[0] * config.ForceMagnitude;
+                    double force = output[1] > 0.5 ? magnitude : -magnitude;
                     simulator.Step(force);
 
                     if (simulator.IsFailed())
@@ -135,7 +138,7 @@ public static class CartPoleExample
         var champion = result.Champion.Genome;
         var evalSim = new CartPoleSimulator(config);
         int championSteps = 0;
-        Span<double> evalOutput = stackalloc double[1];
+        Span<double> evalOutput = stackalloc double[2];
         var stateHistory = new List<(double X, double Theta, double Force)>();
 
         for (int step = 0; step < config.MaxSteps; step++)
@@ -150,7 +153,8 @@ public static class CartPoleExample
 
             champion.Activate(inputs, evalOutput);
 
-            double force = evalOutput[0] > 0.5 ? config.ForceMagnitude : -config.ForceMagnitude;
+            double magnitude = evalOutput[0] * config.ForceMagnitude;
+            double force = evalOutput[1] > 0.5 ? magnitude : -magnitude;
             stateHistory.Add((evalSim.State.X, evalSim.State.Theta, force));
             evalSim.Step(force);
 
@@ -409,11 +413,11 @@ public static class CartPoleExample
             ctx.arc(poleEndX, poleEndY, 3.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Force arrow
+            // Force arrow (length proportional to magnitude)
             if (force !== 0) {
               const arrowY = trackY - cartH / 2;
               const dir = Math.sign(force);
-              const arrowLen = 30;
+              const arrowLen = 6 + 24 * (Math.abs(force) / CFG.forceMag);
               const startX = cx + dir * (cartW / 2 + 4);
               const endX = startX + dir * arrowLen;
               ctx.strokeStyle = dir > 0 ? '#66ff88' : '#ff8866';
@@ -439,7 +443,8 @@ public static class CartPoleExample
             simTimeEl.textContent = (simStep * CFG.dt).toFixed(2);
             cartXEl.textContent = x.toFixed(3);
             poleThetaEl.textContent = (theta * 180 / Math.PI).toFixed(2);
-            forceDirEl.textContent = force > 0 ? '→ Right' : '← Left';
+            const absF = Math.abs(force).toFixed(1);
+            forceDirEl.textContent = force > 0 ? absF + 'N →' : '← ' + absF + 'N';
             forceDirEl.style.color = force > 0 ? '#66ff88' : '#ff8866';
           }
 
