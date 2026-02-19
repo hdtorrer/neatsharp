@@ -13,5 +13,7 @@ public sealed record CartPoleConfig
     public double TimeStep { get; init; } = 0.02;
     public int MaxSteps { get; init; } = 10_000;
     public double TrackHalfLength { get; init; } = 2.4;
-    public double FailureAngle { get; init; } = 0.2094;
+    public double FailureAngle { get; init; } = 1.5;
+    public double InitialTheta { get; init; } = 0.5;
+    public double InitialThetaDot { get; init; } = 0.0;
 }

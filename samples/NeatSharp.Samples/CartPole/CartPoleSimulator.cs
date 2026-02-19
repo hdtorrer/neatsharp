@@ -31,6 +31,8 @@ public sealed class CartPoleSimulator
     {
         _config = config;
         _state = default;
+        _state.Theta = _config.InitialTheta;
+        _state.ThetaDot = _config.InitialThetaDot;
     }
 
     /// <summary>
@@ -84,5 +86,7 @@ public sealed class CartPoleSimulator
     public void Reset()
     {
         _state = default;
+        _state.Theta = _config.InitialTheta;
+        _state.ThetaDot = _config.InitialThetaDot;
     }
 }

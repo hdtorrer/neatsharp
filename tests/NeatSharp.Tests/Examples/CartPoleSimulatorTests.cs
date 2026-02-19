@@ -12,8 +12,8 @@ public class CartPoleSimulatorTests
     [Fact]
     public void Step_KnownInput_ProducesCorrectState()
     {
-        // Arrange: default config, initial state all zeros, apply +10N force
-        var config = new CartPoleConfig();
+        // Arrange: config with zero initial theta for analytical verification, apply +10N force
+        var config = new CartPoleConfig { InitialTheta = 0 };
         var sim = new CartPoleSimulator(config);
 
         // Act: one step with force = 10.0 (right)
@@ -86,16 +86,16 @@ public class CartPoleSimulatorTests
     }
 
     [Fact]
-    public void Constructor_DefaultConfig_InitialStateIsZeros()
+    public void Constructor_DefaultConfig_InitialStateAppliesInitialTheta()
     {
         // Arrange & Act
         var config = new CartPoleConfig();
         var sim = new CartPoleSimulator(config);
 
-        // Assert: initial state should be all zeros
+        // Assert: initial state should have InitialTheta applied, rest zeros
         sim.State.X.Should().Be(0.0);
         sim.State.XDot.Should().Be(0.0);
-        sim.State.Theta.Should().Be(0.0);
+        sim.State.Theta.Should().Be(config.InitialTheta);
         sim.State.ThetaDot.Should().Be(0.0);
     }
 
@@ -120,10 +120,10 @@ public class CartPoleSimulatorTests
         // Reset
         sim.Reset();
 
-        // Assert: state should be back to all zeros
+        // Assert: state should be back to initial (theta = InitialTheta, rest zeros)
         sim.State.X.Should().Be(0.0);
         sim.State.XDot.Should().Be(0.0);
-        sim.State.Theta.Should().Be(0.0);
+        sim.State.Theta.Should().Be(config.InitialTheta);
         sim.State.ThetaDot.Should().Be(0.0);
     }
 
@@ -137,11 +137,12 @@ public class CartPoleSimulatorTests
             CartMass = 2.0,
             PoleMass = 0.5,
             PoleHalfLength = 1.0,
-            TimeStep = 0.01
+            TimeStep = 0.01,
+            InitialTheta = 0
         };
         var simCustom = new CartPoleSimulator(config);
 
-        var defaultConfig = new CartPoleConfig();
+        var defaultConfig = new CartPoleConfig { InitialTheta = 0 };
         var simDefault = new CartPoleSimulator(defaultConfig);
 
         // Act: apply same force to both simulators
