@@ -139,7 +139,7 @@ public static class CartPoleExample
         var evalSim = new CartPoleSimulator(config);
         int championSteps = 0;
         Span<double> evalOutput = stackalloc double[2];
-        var stateHistory = new List<(double X, double Theta, double Force)>();
+        var stateHistory = new List<(double X, double Theta, double Force, double XDot, double ThetaDot)>();
 
         for (int step = 0; step < config.MaxSteps; step++)
         {
@@ -155,7 +155,7 @@ public static class CartPoleExample
 
             double magnitude = evalOutput[0] * config.ForceMagnitude;
             double force = evalOutput[1] > 0.5 ? magnitude : -magnitude;
-            stateHistory.Add((evalSim.State.X, evalSim.State.Theta, force));
+            stateHistory.Add((evalSim.State.X, evalSim.State.Theta, force, evalSim.State.XDot, evalSim.State.ThetaDot));
             evalSim.Step(force);
 
             if (evalSim.IsFailed())
@@ -171,7 +171,7 @@ public static class CartPoleExample
         Console.WriteLine($"  Champion fitness: {result.Champion.Fitness:F4}");
 
         // Generate and open HTML visualization of the champion run
-        OpenVisualization(stateHistory, config, championSteps);
+        OpenVisualization(stateHistory, config, championSteps, result.Champion.Genotype);
 
         // Metrics snapshot: show per-generation progress
         if (result.History.Generations.Count > 0)
@@ -191,27 +191,32 @@ public static class CartPoleExample
     }
 
     private static void OpenVisualization(
-        List<(double X, double Theta, double Force)> history,
+        List<(double X, double Theta, double Force, double XDot, double ThetaDot)> history,
         CartPoleConfig config,
-        int stepsBalanced)
+        int stepsBalanced,
+        Genome? genotype)
     {
         // Sample frames: keep at most ~2000 frames for smooth browser playback
         const int maxFrames = 2000;
         int sampleInterval = Math.Max(1, history.Count / maxFrames);
 
-        var json = new StringBuilder("[");
+        var framesJson = new StringBuilder("[");
         for (int i = 0; i < history.Count; i += sampleInterval)
         {
             if (i > 0)
             {
-                json.Append(',');
+                framesJson.Append(',');
             }
-            var (x, theta, force) = history[i];
-            json.Append(CultureInfo.InvariantCulture, $"[{x:G6},{theta:G6},{force:G6}]");
-        }
-        json.Append(']');
 
-        string html = GenerateHtml(json.ToString(), config, stepsBalanced, sampleInterval);
+            var (x, theta, force, xDot, thetaDot) = history[i];
+            framesJson.Append(CultureInfo.InvariantCulture,
+                $"[{x:G6},{theta:G6},{force:G6},{xDot:G6},{thetaDot:G6}]");
+        }
+
+        framesJson.Append(']');
+
+        string networkJson = SerializeGenome(genotype);
+        string html = GenerateHtml(framesJson.ToString(), networkJson, config, stepsBalanced, sampleInterval);
 
         string path = Path.Combine(Path.GetTempPath(), "neatsharp-cartpole.html");
         File.WriteAllText(path, html);
@@ -229,8 +234,46 @@ public static class CartPoleExample
         }
     }
 
+    private static string SerializeGenome(Genome? genotype)
+    {
+        if (genotype is null)
+        {
+            return "null";
+        }
+
+        var sb = new StringBuilder("{\"nodes\":[");
+        for (int i = 0; i < genotype.Nodes.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(',');
+            }
+
+            var n = genotype.Nodes[i];
+            sb.Append(CultureInfo.InvariantCulture,
+                $"{{\"id\":{n.Id},\"type\":\"{n.Type}\",\"act\":\"{n.ActivationFunction}\"}}");
+        }
+
+        sb.Append("],\"connections\":[");
+        for (int i = 0; i < genotype.Connections.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(',');
+            }
+
+            var c = genotype.Connections[i];
+            sb.Append(CultureInfo.InvariantCulture,
+                $"{{\"src\":{c.SourceNodeId},\"tgt\":{c.TargetNodeId},\"w\":{c.Weight:G6},\"on\":{(c.IsEnabled ? "true" : "false")}}}");
+        }
+
+        sb.Append("]}");
+        return sb.ToString();
+    }
+
     private static string GenerateHtml(
         string framesJson,
+        string networkJson,
         CartPoleConfig config,
         int stepsBalanced,
         int sampleInterval)
@@ -246,6 +289,7 @@ public static class CartPoleExample
           body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
           h1 { font-size: 1.4rem; margin-bottom: 4px; color: #a0c4ff; }
           .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 16px; }
+          .canvases { display: flex; gap: 12px; align-items: start; flex-wrap: wrap; justify-content: center; }
           canvas { border: 1px solid #333; border-radius: 6px; background: #0f0f23; }
           .controls { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
           button { background: #2a2a4a; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.9rem; }
@@ -259,7 +303,10 @@ public static class CartPoleExample
         <body>
         <h1>Cart-Pole Champion Replay</h1>
         <div class="subtitle">NeatSharp NEAT — {{stepsBalanced}} / {{config.MaxSteps}} steps balanced</div>
-        <canvas id="c" width="800" height="400"></canvas>
+        <div class="canvases">
+          <canvas id="c" width="800" height="400"></canvas>
+          <canvas id="nn" width="460" height="400"></canvas>
+        </div>
         <div class="controls">
           <button id="playBtn">Pause</button>
           <button id="restartBtn">Restart</button>
@@ -276,6 +323,7 @@ public static class CartPoleExample
         <script>
         (function() {
           const frames = {{framesJson}};
+          const NET = {{networkJson}};
           const CFG = {
             trackHalf: {{config.TrackHalfLength.ToString(CultureInfo.InvariantCulture)}},
             poleHalf: {{config.PoleHalfLength.ToString(CultureInfo.InvariantCulture)}},
@@ -286,17 +334,21 @@ public static class CartPoleExample
           };
           const total = frames.length;
 
+          // ── Cart-Pole canvas ──
           const canvas = document.getElementById('c');
           const ctx = canvas.getContext('2d');
           const W = canvas.width, H = canvas.height;
-
-          // Layout constants
           const trackY = H * 0.72;
-          const scale = (W - 80) / (2 * CFG.trackHalf);  // px per meter
+          const scale = (W - 80) / (2 * CFG.trackHalf);
           const cartW = 50, cartH = 28;
-          const poleLen = CFG.poleHalf * 2 * scale;       // full pole in px
+          const poleLen = CFG.poleHalf * 2 * scale;
 
-          // UI elements
+          // ── Network canvas ──
+          const nnCanvas = document.getElementById('nn');
+          const nnCtx = nnCanvas.getContext('2d');
+          const NW = nnCanvas.width, NH = nnCanvas.height;
+
+          // ── UI elements ──
           const playBtn = document.getElementById('playBtn');
           const restartBtn = document.getElementById('restartBtn');
           const speedSlider = document.getElementById('speed');
@@ -308,35 +360,223 @@ public static class CartPoleExample
           const cartXEl = document.getElementById('cartX');
           const poleThetaEl = document.getElementById('poleTheta');
           const forceDirEl = document.getElementById('forceDir');
-
           totalFramesEl.textContent = total;
 
-          let idx = 0;
-          let playing = true;
-          let accumulator = 0;
-
+          let idx = 0, playing = true, accumulator = 0;
           playBtn.onclick = () => { playing = !playing; playBtn.textContent = playing ? 'Pause' : 'Play'; };
           restartBtn.onclick = () => { idx = 0; accumulator = 0; if (!playing) { playing = true; playBtn.textContent = 'Pause'; } };
           speedSlider.oninput = () => { speedLbl.textContent = speedSlider.value + 'x'; };
 
+          // ── Activation functions ──
+          const actFns = {
+            sigmoid: v => 1 / (1 + Math.exp(-v)),
+            tanh: v => Math.tanh(v),
+            relu: v => Math.max(0, v),
+            step: v => v > 0 ? 1 : 0,
+            identity: v => v
+          };
+
+          // ── Build network layout ──
+          const inputLabels = ['x', 'x\u0307', '\u03b8', '\u03b8\u0307'];
+          const outputLabels = ['Mag', 'Dir'];
+
+          let nodeMap = {};      // id -> {type, act, col, row, px, py, val}
+          let topoOrder = [];    // ids in evaluation order
+          let connections = [];   // {src, tgt, w, on}
+
+          if (NET) {
+            const inputs = [], outputs = [], hidden = [], biases = [];
+            NET.nodes.forEach(n => {
+              nodeMap[n.id] = { type: n.type, act: n.act, val: 0 };
+              if (n.type === 'Input') inputs.push(n.id);
+              else if (n.type === 'Output') outputs.push(n.id);
+              else if (n.type === 'Bias') biases.push(n.id);
+              else hidden.push(n.id);
+            });
+            connections = NET.connections;
+
+            // Assign layers for layout: inputs+bias=0, hidden=1, outputs=2
+            // For multiple hidden layers we do a simple BFS depth from inputs
+            const depth = {};
+            inputs.forEach(id => depth[id] = 0);
+            biases.forEach(id => depth[id] = 0);
+
+            // Topological sort via Kahn's algorithm on enabled connections
+            const inDeg = {};
+            const adj = {};
+            Object.keys(nodeMap).forEach(id => { inDeg[id] = 0; adj[id] = []; });
+            connections.forEach(c => {
+              if (!c.on) return;
+              adj[c.src].push(c.tgt);
+              inDeg[c.tgt]++;
+            });
+            const queue = Object.keys(nodeMap).filter(id => inDeg[id] === 0).map(Number);
+            while (queue.length > 0) {
+              const nid = queue.shift();
+              topoOrder.push(nid);
+              (adj[nid] || []).forEach(tgt => {
+                const d = (depth[nid] || 0) + 1;
+                if (!depth[tgt] || d > depth[tgt]) depth[tgt] = d;
+                inDeg[tgt]--;
+                if (inDeg[tgt] === 0) queue.push(tgt);
+              });
+            }
+
+            // Force output nodes to max depth + 1
+            const maxHiddenDepth = Math.max(1, ...Object.values(depth));
+            outputs.forEach(id => depth[id] = maxHiddenDepth + 1);
+
+            // Group by depth for column layout
+            const columns = {};
+            Object.keys(nodeMap).forEach(id => {
+              const d = depth[id] || 0;
+              if (!columns[d]) columns[d] = [];
+              columns[d].push(Number(id));
+            });
+            const colKeys = Object.keys(columns).map(Number).sort((a, b) => a - b);
+            const numCols = colKeys.length;
+
+            // Compute pixel positions
+            const padX = 70, padY = 40;
+            const usableW = NW - 2 * padX;
+            const usableH = NH - 2 * padY;
+            colKeys.forEach((ck, ci) => {
+              const col = columns[ck];
+              const xPos = numCols === 1 ? NW / 2 : padX + ci * (usableW / (numCols - 1));
+              col.forEach((id, ri) => {
+                const yPos = col.length === 1 ? NH / 2 : padY + ri * (usableH / (col.length - 1));
+                nodeMap[id].px = xPos;
+                nodeMap[id].py = yPos;
+              });
+            });
+          }
+
+          // ── Forward pass ──
+          function forwardPass(normInputs) {
+            if (!NET) return;
+            // Reset values
+            Object.keys(nodeMap).forEach(id => { nodeMap[id].val = 0; });
+            // Set input values
+            const inputs = Object.keys(nodeMap).filter(id => nodeMap[id].type === 'Input');
+            inputs.sort((a, b) => a - b);
+            inputs.forEach((id, i) => { nodeMap[id].val = normInputs[i] ?? 0; });
+            // Set bias
+            Object.keys(nodeMap).filter(id => nodeMap[id].type === 'Bias')
+              .forEach(id => { nodeMap[id].val = 1.0; });
+            // Evaluate in topological order
+            topoOrder.forEach(nid => {
+              const node = nodeMap[nid];
+              if (node.type === 'Input' || node.type === 'Bias') return;
+              let sum = 0;
+              connections.forEach(c => {
+                if (c.on && c.tgt === nid) sum += c.w * nodeMap[c.src].val;
+              });
+              const fn = actFns[node.act] || actFns.sigmoid;
+              node.val = fn(sum);
+            });
+          }
+
+          // ── Color helpers ──
+          function valToColor(v) {
+            // Map activation value to color: 0=cool blue, 1=warm yellow
+            const t = Math.max(0, Math.min(1, v));
+            const r = Math.round(40 + 215 * t);
+            const g = Math.round(60 + 180 * t);
+            const b = Math.round(180 - 120 * t);
+            return `rgb(${r},${g},${b})`;
+          }
+          function weightColor(w) {
+            return w >= 0 ? 'rgba(100,255,140,' : 'rgba(255,100,100,';
+          }
+
+          // ── Draw network ──
+          function drawNetwork() {
+            if (!NET) return;
+            nnCtx.clearRect(0, 0, NW, NH);
+
+            // Title
+            nnCtx.fillStyle = '#a0c4ff';
+            nnCtx.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+            nnCtx.textAlign = 'center';
+            nnCtx.fillText('Champion Neural Network', NW / 2, 18);
+
+            // Draw connections
+            connections.forEach(c => {
+              const src = nodeMap[c.src], tgt = nodeMap[c.tgt];
+              if (!src || !tgt) return;
+              const absW = Math.min(Math.abs(c.w), 5);
+              const alpha = c.on ? (0.25 + 0.55 * (absW / 5)) : 0.08;
+              nnCtx.strokeStyle = weightColor(c.w) + alpha + ')';
+              nnCtx.lineWidth = c.on ? (0.8 + 2.2 * (absW / 5)) : 0.5;
+              if (!c.on) nnCtx.setLineDash([3, 3]);
+              nnCtx.beginPath();
+              nnCtx.moveTo(src.px, src.py);
+              nnCtx.lineTo(tgt.px, tgt.py);
+              nnCtx.stroke();
+              nnCtx.setLineDash([]);
+
+              // Weight label at midpoint
+              if (c.on) {
+                const mx = (src.px + tgt.px) / 2;
+                const my = (src.py + tgt.py) / 2;
+                nnCtx.fillStyle = 'rgba(200,200,200,0.6)';
+                nnCtx.font = '9px "Segoe UI", system-ui, sans-serif';
+                nnCtx.textAlign = 'center';
+                nnCtx.fillText(c.w.toFixed(2), mx, my - 4);
+              }
+            });
+
+            // Draw nodes
+            const nodeR = 16;
+            Object.keys(nodeMap).forEach(id => {
+              const n = nodeMap[id];
+              // Node circle
+              nnCtx.beginPath();
+              nnCtx.arc(n.px, n.py, nodeR, 0, Math.PI * 2);
+              nnCtx.fillStyle = valToColor(n.val);
+              nnCtx.fill();
+              nnCtx.strokeStyle = n.type === 'Bias' ? '#bbbb44' :
+                                  n.type === 'Input' ? '#4488cc' :
+                                  n.type === 'Output' ? '#cc6644' : '#888';
+              nnCtx.lineWidth = 2;
+              nnCtx.stroke();
+
+              // Value inside node
+              nnCtx.fillStyle = n.val > 0.5 ? '#111' : '#eee';
+              nnCtx.font = 'bold 10px "Segoe UI", system-ui, sans-serif';
+              nnCtx.textAlign = 'center';
+              nnCtx.textBaseline = 'middle';
+              nnCtx.fillText(n.val.toFixed(2), n.px, n.py);
+
+              // Label below node
+              nnCtx.textBaseline = 'top';
+              nnCtx.fillStyle = '#999';
+              nnCtx.font = '10px "Segoe UI", system-ui, sans-serif';
+              let label = '';
+              if (n.type === 'Input') {
+                const inputs = Object.keys(nodeMap).filter(k => nodeMap[k].type === 'Input').sort((a,b) => a - b);
+                const i = inputs.indexOf(id.toString());
+                label = inputLabels[i] || 'in' + i;
+              } else if (n.type === 'Output') {
+                const outputs = Object.keys(nodeMap).filter(k => nodeMap[k].type === 'Output').sort((a,b) => a - b);
+                const i = outputs.indexOf(id.toString());
+                label = outputLabels[i] || 'out' + i;
+              } else if (n.type === 'Bias') {
+                label = 'bias';
+              } else {
+                label = 'H' + id;
+              }
+              nnCtx.fillText(label, n.px, n.py + nodeR + 3);
+            });
+          }
+
+          // ── Draw cart-pole ──
           function xToCanvas(x) { return W / 2 + x * scale; }
 
-          function draw(frame) {
+          function drawCartPole(frame) {
             const [x, theta, force] = frame;
             const cx = xToCanvas(x);
-
             ctx.clearRect(0, 0, W, H);
-
-            // Failure angle zones (subtle shading)
-            ctx.save();
-            ctx.globalAlpha = 0.07;
-            ctx.fillStyle = '#ff4444';
-            // Left failure zone
-            ctx.beginPath();
-            ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, H); ctx.lineTo(0, H);
-            ctx.closePath();
-            // We'll just shade above the failure angles on each side with dashed lines instead
-            ctx.restore();
 
             // Track
             const trackL = xToCanvas(-CFG.trackHalf);
@@ -358,7 +598,7 @@ public static class CartPoleExample
               ctx.stroke();
             });
 
-            // Failure angle indicators (dashed lines from cart pivot)
+            // Failure angle indicators
             ctx.save();
             ctx.setLineDash([4, 4]);
             ctx.strokeStyle = 'rgba(255,100,100,0.35)';
@@ -383,10 +623,9 @@ public static class CartPoleExample
 
             // Wheels
             ctx.fillStyle = '#333';
-            const wheelR = 5;
             [-14, 14].forEach(offset => {
               ctx.beginPath();
-              ctx.arc(cx + offset, trackY + 2, wheelR, 0, Math.PI * 2);
+              ctx.arc(cx + offset, trackY + 2, 5, 0, Math.PI * 2);
               ctx.fill();
             });
 
@@ -413,7 +652,7 @@ public static class CartPoleExample
             ctx.arc(poleEndX, poleEndY, 3.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Force arrow (length proportional to magnitude)
+            // Force arrow
             if (force !== 0) {
               const arrowY = trackY - cartH / 2;
               const dir = Math.sign(force);
@@ -426,7 +665,6 @@ public static class CartPoleExample
               ctx.moveTo(startX, arrowY);
               ctx.lineTo(endX, arrowY);
               ctx.stroke();
-              // Arrowhead
               ctx.fillStyle = ctx.strokeStyle;
               ctx.beginPath();
               ctx.moveTo(endX, arrowY);
@@ -436,7 +674,7 @@ public static class CartPoleExample
               ctx.fill();
             }
 
-            // Update info
+            // Update info bar
             const simStep = idx * CFG.sampleInterval;
             frameNum.textContent = idx;
             simStepEl.textContent = simStep;
@@ -444,10 +682,26 @@ public static class CartPoleExample
             cartXEl.textContent = x.toFixed(3);
             poleThetaEl.textContent = (theta * 180 / Math.PI).toFixed(2);
             const absF = Math.abs(force).toFixed(1);
-            forceDirEl.textContent = force > 0 ? absF + 'N →' : '← ' + absF + 'N';
+            forceDirEl.textContent = force > 0 ? absF + 'N \u2192' : '\u2190 ' + absF + 'N';
             forceDirEl.style.color = force > 0 ? '#66ff88' : '#ff8866';
           }
 
+          // ── Main draw ──
+          function draw(frame) {
+            const [x, theta, force, xDot, thetaDot] = frame;
+            drawCartPole(frame);
+            // Compute normalized inputs for forward pass
+            const normInputs = [
+              x / CFG.trackHalf,
+              xDot / 2.0,
+              theta / CFG.failAngle,
+              thetaDot / 2.0
+            ];
+            forwardPass(normInputs);
+            drawNetwork();
+          }
+
+          // ── Animation loop ──
           let lastTime = 0;
           function loop(ts) {
             if (lastTime === 0) lastTime = ts;
@@ -456,7 +710,7 @@ public static class CartPoleExample
 
             if (playing && idx < total - 1) {
               const speed = parseInt(speedSlider.value);
-              accumulator += dt * speed * 60;  // target frames per second scaled by speed
+              accumulator += dt * speed * 60;
               while (accumulator >= 1 && idx < total - 1) {
                 idx++;
                 accumulator -= 1;
