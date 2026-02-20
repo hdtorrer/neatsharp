@@ -41,7 +41,9 @@ public class RouletteWheelSelectorTests
             var random = new Random(seed);
             var result = sut.Select(candidates, random);
             if (ReferenceEquals(result, highFitGenome))
+            {
                 highFitCount++;
+            }
         }
 
         // With 90% fitness proportion, high-fit should be selected ~90% of the time
@@ -73,7 +75,9 @@ public class RouletteWheelSelectorTests
             var random = new Random(seed);
             var result = sut.Select(candidates, random);
             if (ReferenceEquals(result, genome1))
+            {
                 genome1Count++;
+            }
         }
 
         double proportion = (double)genome1Count / totalSelections;
@@ -107,7 +111,9 @@ public class RouletteWheelSelectorTests
             var random = new Random(seed);
             var result = sut.Select(candidates, random);
             if (ReferenceEquals(result, genome1))
+            {
                 genome1Count++;
+            }
         }
 
         // genome1 has relatively higher fitness (-5 vs -10), so should be selected more often
@@ -137,7 +143,9 @@ public class RouletteWheelSelectorTests
             var random = new Random(seed);
             var result = sut.Select(candidates, random);
             if (ReferenceEquals(result, genome2))
+            {
                 genome2Count++;
+            }
         }
 
         // genome2 should be selected much more often

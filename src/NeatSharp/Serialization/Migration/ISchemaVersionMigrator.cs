@@ -12,7 +12,7 @@ public interface ISchemaVersionMigrator
     /// </summary>
     /// <param name="fromVersion">The source schema version to migrate from.</param>
     /// <returns><c>true</c> if migration from the specified version is supported; <c>false</c> otherwise.</returns>
-    bool CanMigrate(string fromVersion);
+    public bool CanMigrate(string fromVersion);
 
     /// <summary>
     /// Migrates a JSON document from the specified version to the current schema version.
@@ -20,5 +20,5 @@ public interface ISchemaVersionMigrator
     /// <param name="doc">The JSON document to migrate.</param>
     /// <param name="fromVersion">The source schema version of the document.</param>
     /// <returns>A new JSON document conforming to the current schema version.</returns>
-    JsonDocument Migrate(JsonDocument doc, string fromVersion);
+    public JsonDocument Migrate(JsonDocument doc, string fromVersion);
 }

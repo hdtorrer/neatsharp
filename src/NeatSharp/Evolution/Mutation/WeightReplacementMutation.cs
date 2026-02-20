@@ -21,7 +21,9 @@ public sealed class WeightReplacementMutation : IMutationOperator
     public Genome Mutate(Genome genome, Random random, IInnovationTracker tracker)
     {
         if (genome.Connections.Count == 0)
+        {
             return genome;
+        }
 
         var mutation = _options.Mutation;
         int index = random.Next(genome.Connections.Count);

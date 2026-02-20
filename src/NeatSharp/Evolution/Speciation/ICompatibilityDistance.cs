@@ -13,5 +13,5 @@ public interface ICompatibilityDistance
     /// <param name="genome1">First genome.</param>
     /// <param name="genome2">Second genome.</param>
     /// <returns>A non-negative distance value.</returns>
-    double Compute(Genome genome1, Genome genome2);
+    public double Compute(Genome genome1, Genome genome2);
 }

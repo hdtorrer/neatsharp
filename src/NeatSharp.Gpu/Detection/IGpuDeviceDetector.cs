@@ -19,5 +19,5 @@ public interface IGpuDeviceDetector
     /// set to false with a diagnostic message explaining the incompatibility.
     /// When no GPU hardware is detected at all, returns null.
     /// </remarks>
-    IGpuDeviceInfo? Detect();
+    public IGpuDeviceInfo? Detect();
 }

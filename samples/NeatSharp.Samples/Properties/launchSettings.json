@@ -6,6 +6,14 @@
     "GPU Benchmark": {
       "commandName": "Project",
       "commandLineArgs": "benchmark"
+    },
+    "Hybrid Benchmark": {
+      "commandName": "Project",
+      "commandLineArgs": "hybrid-benchmark"
+    },
+    "Cart Pole Sample": {
+      "commandName": "Project",
+      "commandLineArgs": "cart-pole"
     }
   }
 }

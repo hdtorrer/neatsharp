@@ -29,5 +29,5 @@ public interface IEnvironmentEvaluator
     /// <param name="genome">The genome to evaluate.</param>
     /// <param name="cancellationToken">Token to observe for cancellation.</param>
     /// <returns>The fitness score derived from the episode outcomes.</returns>
-    Task<double> EvaluateAsync(IGenome genome, CancellationToken cancellationToken);
+    public Task<double> EvaluateAsync(IGenome genome, CancellationToken cancellationToken);
 }

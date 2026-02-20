@@ -13,7 +13,9 @@ public class RngStateHelperTests
 
         // Advance the RNG a few steps
         for (int i = 0; i < 10; i++)
+        {
             rng.Next();
+        }
 
         // Capture state
         var state = RngStateHelper.Capture(rng);
@@ -21,7 +23,9 @@ public class RngStateHelperTests
         // Generate reference values
         var expected = new int[100];
         for (int i = 0; i < expected.Length; i++)
+        {
             expected[i] = rng.Next();
+        }
 
         // Restore state
         RngStateHelper.Restore(rng, state);
@@ -29,7 +33,9 @@ public class RngStateHelperTests
         // Generate values again — should be identical
         var actual = new int[100];
         for (int i = 0; i < actual.Length; i++)
+        {
             actual[i] = rng.Next();
+        }
 
         actual.Should().Equal(expected);
     }
@@ -57,7 +63,9 @@ public class RngStateHelperTests
 
         // Advance to get non-trivial inext/inextp values
         for (int i = 0; i < 50; i++)
+        {
             rng.Next();
+        }
 
         var captured = RngStateHelper.Capture(rng);
 
@@ -96,19 +104,25 @@ public class RngStateHelperTests
 
         // Advance
         for (int i = 0; i < 25; i++)
+        {
             rng.NextDouble();
+        }
 
         var state = RngStateHelper.Capture(rng);
 
         var expected = new double[50];
         for (int i = 0; i < expected.Length; i++)
+        {
             expected[i] = rng.NextDouble();
+        }
 
         RngStateHelper.Restore(rng, state);
 
         var actual = new double[50];
         for (int i = 0; i < actual.Length; i++)
+        {
             actual[i] = rng.NextDouble();
+        }
 
         actual.Should().Equal(expected);
     }

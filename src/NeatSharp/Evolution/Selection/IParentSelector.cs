@@ -16,5 +16,5 @@ public interface IParentSelector
     /// </param>
     /// <param name="random">Seeded RNG for deterministic behavior.</param>
     /// <returns>The selected parent genome.</returns>
-    Genome Select(IReadOnlyList<(Genome Genome, double Fitness)> candidates, Random random);
+    public Genome Select(IReadOnlyList<(Genome Genome, double Fitness)> candidates, Random random);
 }

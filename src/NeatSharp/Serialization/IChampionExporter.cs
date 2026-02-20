@@ -26,7 +26,7 @@ public interface IChampionExporter
     /// Use the <see cref="ExportAsync(Stream, TrainingCheckpoint, CancellationToken)"/> overload
     /// with a <see cref="TrainingCheckpoint"/> instead.
     /// </exception>
-    Task ExportAsync(Stream stream, EvolutionResult result, CancellationToken cancellationToken = default);
+    public Task ExportAsync(Stream stream, EvolutionResult result, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Exports a champion from a training checkpoint to a JSON stream.
@@ -37,5 +37,5 @@ public interface IChampionExporter
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="stream"/> or <paramref name="checkpoint"/> is null.
     /// </exception>
-    Task ExportAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
+    public Task ExportAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
 }

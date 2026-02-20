@@ -119,7 +119,9 @@ public class FunctionApproximationExampleTests
             foreach (var gen in result.History.Generations)
             {
                 if (gen.BestFitness > runningBest)
+                {
                     runningBest = gen.BestFitness;
+                }
             }
             runningBest.Should().BeGreaterThanOrEqualTo(0.95,
                 "running best fitness should reach the target threshold");

@@ -22,7 +22,9 @@ public sealed class WeightPerturbationMutation : IMutationOperator
     public Genome Mutate(Genome genome, Random random, IInnovationTracker tracker)
     {
         if (genome.Connections.Count == 0)
+        {
             return genome;
+        }
 
         var mutation = _options.Mutation;
         var newConnections = new ConnectionGene[genome.Connections.Count];

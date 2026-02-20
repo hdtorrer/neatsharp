@@ -111,7 +111,9 @@ public class WeightPerturbationMutationTests
             result.Connections[0].Weight.Should().BeLessThanOrEqualTo(4.0,
                 $"weight should be clamped to max (seed={seed})");
             if (result.Connections[0].Weight == 4.0)
+            {
                 foundClampedCase = true;
+            }
         }
 
         foundClampedCase.Should().BeTrue("at least one seed should produce a clamped-to-max result");
@@ -137,7 +139,9 @@ public class WeightPerturbationMutationTests
             result.Connections[0].Weight.Should().BeGreaterThanOrEqualTo(-4.0,
                 $"weight should be clamped to min (seed={seed})");
             if (result.Connections[0].Weight == -4.0)
+            {
                 foundClampedCase = true;
+            }
         }
 
         foundClampedCase.Should().BeTrue("at least one seed should produce a clamped-to-min result");

@@ -18,7 +18,7 @@ public interface IActivationFunctionRegistry
     /// <exception cref="ArgumentException">
     /// Thrown when no function is registered under <paramref name="name"/>.
     /// </exception>
-    Func<double, double> Get(string name);
+    public Func<double, double> Get(string name);
 
     /// <summary>
     /// Registers a custom activation function.
@@ -33,12 +33,12 @@ public interface IActivationFunctionRegistry
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="name"/> is already registered.
     /// </exception>
-    void Register(string name, Func<double, double> function);
+    public void Register(string name, Func<double, double> function);
 
     /// <summary>
     /// Checks whether an activation function is registered under the specified name.
     /// </summary>
     /// <param name="name">The activation function name (case-insensitive).</param>
     /// <returns><c>true</c> if registered; otherwise <c>false</c>.</returns>
-    bool Contains(string name);
+    public bool Contains(string name);
 }

@@ -14,12 +14,12 @@ public interface IGenome
     /// <summary>
     /// Gets the number of nodes in this genome's network.
     /// </summary>
-    int NodeCount { get; }
+    public int NodeCount { get; }
 
     /// <summary>
     /// Gets the number of connections in this genome's network.
     /// </summary>
-    int ConnectionCount { get; }
+    public int ConnectionCount { get; }
 
     /// <summary>
     /// Activates the neural network with the given inputs and writes
@@ -38,5 +38,5 @@ public interface IGenome
     /// node count, or <paramref name="outputs"/> length does not match
     /// output node count.
     /// </exception>
-    void Activate(ReadOnlySpan<double> inputs, Span<double> outputs);
+    public void Activate(ReadOnlySpan<double> inputs, Span<double> outputs);
 }

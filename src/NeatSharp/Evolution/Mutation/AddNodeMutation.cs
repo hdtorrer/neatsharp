@@ -23,18 +23,24 @@ public sealed class AddNodeMutation : IMutationOperator
     {
         // Check MaxNodes limit
         if (_options.Complexity.MaxNodes.HasValue && genome.Nodes.Count >= _options.Complexity.MaxNodes.Value)
+        {
             return genome;
+        }
 
         // Find enabled connections
         var enabledIndices = new List<int>();
         for (int i = 0; i < genome.Connections.Count; i++)
         {
             if (genome.Connections[i].IsEnabled)
+            {
                 enabledIndices.Add(i);
+            }
         }
 
         if (enabledIndices.Count == 0)
+        {
             return genome;
+        }
 
         // Select random enabled connection
         int selectedIndex = enabledIndices[random.Next(enabledIndices.Count)];
@@ -46,7 +52,10 @@ public sealed class AddNodeMutation : IMutationOperator
         // Build new node list
         var newNodes = new NodeGene[genome.Nodes.Count + 1];
         for (int i = 0; i < genome.Nodes.Count; i++)
+        {
             newNodes[i] = genome.Nodes[i];
+        }
+
         newNodes[^1] = new NodeGene(splitResult.NewNodeId, NodeType.Hidden);
 
         // Build new connection list

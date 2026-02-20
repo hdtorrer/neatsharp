@@ -1,0 +1,16 @@
+{
+  "Title": "NeatSharp Benchmark Baseline",
+  "HostEnvironmentInfo": {
+    "BenchmarkDotNetVersion": "0.14.0"
+  },
+  "Benchmarks": [
+    {
+      "FullName": "NeatSharp.Benchmarks.CpuEvaluatorBenchmarks.EvaluateBatch(PopulationSize: 500)",
+      "Statistics": {
+        "Mean": 0,
+        "StdDev": 0,
+        "Median": 0
+      }
+    }
+  ]
+}

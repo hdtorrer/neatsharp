@@ -27,7 +27,7 @@ public interface IInnovationTracker
     /// The innovation number for this connection. Returns the same value
     /// if the same source/target pair is requested again within the same generation.
     /// </returns>
-    int GetConnectionInnovation(int sourceNodeId, int targetNodeId);
+    public int GetConnectionInnovation(int sourceNodeId, int targetNodeId);
 
     /// <summary>
     /// Gets or assigns deterministic IDs for splitting a connection into two
@@ -40,23 +40,23 @@ public interface IInnovationTracker
     /// A <see cref="NodeSplitResult"/> containing the new node ID and
     /// innovation numbers for the two new connections.
     /// </returns>
-    NodeSplitResult GetNodeSplitInnovation(int connectionInnovation);
+    public NodeSplitResult GetNodeSplitInnovation(int connectionInnovation);
 
     /// <summary>
     /// Gets the next innovation number that will be assigned.
     /// </summary>
-    int NextInnovationNumber { get; }
+    public int NextInnovationNumber { get; }
 
     /// <summary>
     /// Gets the next node ID that will be assigned.
     /// </summary>
-    int NextNodeId { get; }
+    public int NextNodeId { get; }
 
     /// <summary>
     /// Advances to the next generation, clearing the deduplication cache
     /// while preserving global ID counters.
     /// </summary>
-    void NextGeneration();
+    public void NextGeneration();
 
     /// <summary>
     /// Restores the innovation tracker to a previously saved state.
@@ -64,5 +64,5 @@ public interface IInnovationTracker
     /// </summary>
     /// <param name="nextInnovationNumber">The next innovation number counter value.</param>
     /// <param name="nextNodeId">The next node ID counter value.</param>
-    void RestoreState(int nextInnovationNumber, int nextNodeId);
+    public void RestoreState(int nextInnovationNumber, int nextNodeId);
 }

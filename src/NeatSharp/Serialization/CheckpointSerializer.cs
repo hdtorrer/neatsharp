@@ -199,12 +199,16 @@ public sealed class CheckpointSerializer : ICheckpointSerializer
             var reader = new Utf8JsonReader(buffer.AsSpan(), new JsonReaderOptions { MaxDepth = 64 });
 
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
                 return null;
+            }
 
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.EndObject)
+                {
                     break;
+                }
 
                 if (reader.TokenType == JsonTokenType.PropertyName)
                 {

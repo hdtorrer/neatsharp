@@ -26,6 +26,11 @@
     <ProjectReference Include="..\..\src\NeatSharp\NeatSharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <ProjectReference Include="..\..\samples\NeatSharp.Samples\NeatSharp.Samples.csproj" />
+    <ProjectReference Include="..\..\tools\benchmark-compare\benchmark-compare.csproj" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="Serialization\Fixtures\v1_0_0_checkpoint.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

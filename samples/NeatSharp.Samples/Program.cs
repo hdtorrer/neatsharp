@@ -9,6 +9,40 @@ using NeatSharp.Reporting;
 Console.WriteLine("=== NeatSharp Samples ===");
 Console.WriteLine();
 
+if (args.Length > 0 && args[0] == "hybrid-benchmark")
+{
+    // Detect real GPU first
+    var hybridDetector = new NeatSharp.Gpu.Detection.GpuDeviceDetector(
+        Microsoft.Extensions.Options.Options.Create(new NeatSharp.Gpu.Configuration.GpuOptions()));
+    var hybridDevice = hybridDetector.Detect();
+    if (hybridDevice is not null)
+    {
+        Console.WriteLine($"GPU Detected: {hybridDevice.DeviceName} (CC {hybridDevice.ComputeCapability}, {hybridDevice.MemoryBytes / (1024 * 1024)} MB, Compatible: {hybridDevice.IsCompatible})");
+    }
+    else
+    {
+        Console.WriteLine("No CUDA GPU detected.");
+    }
+
+    Console.WriteLine();
+
+    // Run scaling benchmark (transfer-dominated + compute-dominated)
+    var (transferResults, computeResults) = NeatSharp.Samples.HybridBenchmark.RunScalingBenchmark(
+        populationSizes: [200, 1000, 5000]);
+
+    Console.WriteLine();
+
+    // Run bimodal comparison (SC-006)
+    var bimodalResults = NeatSharp.Samples.HybridBenchmark.RunBimodalComparison(
+        populationSizes: [200, 1000, 5000]);
+
+    Console.WriteLine();
+    Console.WriteLine("=== Final Report ===");
+    Console.WriteLine(NeatSharp.Samples.HybridBenchmark.GenerateMarkdownReport(
+        transferResults, computeResults, bimodalResults, hybridDevice));
+    return;
+}
+
 if (args.Length > 0 && args[0] == "benchmark")
 {
     // Detect real GPU first
@@ -46,6 +80,12 @@ if (args.Length > 0 && args[0] == "benchmark")
         scalingResults, device,
         heavyResults: heavyResults,
         heavyCaseCount: 100));
+    return;
+}
+
+if (args.Length > 0 && args[0] == "cart-pole")
+{
+    await NeatSharp.Samples.CartPole.CartPoleExample.RunAsync();
     return;
 }
 

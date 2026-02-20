@@ -11,7 +11,7 @@ public interface ICheckpointValidator
     /// </summary>
     /// <param name="checkpoint">The checkpoint to validate.</param>
     /// <returns>A validation result containing any errors found.</returns>
-    CheckpointValidationResult Validate(TrainingCheckpoint checkpoint);
+    public CheckpointValidationResult Validate(TrainingCheckpoint checkpoint);
 }
 
 /// <summary>

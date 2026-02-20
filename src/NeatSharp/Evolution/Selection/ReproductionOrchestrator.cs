@@ -52,7 +52,9 @@ public sealed class ReproductionOrchestrator
         var offspring = new List<(Genome, int)>();
 
         if (species.Count == 0)
+        {
             return offspring;
+        }
 
         var allocation = _allocator.AllocateOffspring(species, _options.PopulationSize);
         var selectionOptions = _options.Selection;
@@ -61,7 +63,9 @@ public sealed class ReproductionOrchestrator
         foreach (var s in species)
         {
             if (!allocation.TryGetValue(s.Id, out int offspringCount) || offspringCount <= 0)
+            {
                 continue;
+            }
 
             int remaining = offspringCount;
 
@@ -74,7 +78,9 @@ public sealed class ReproductionOrchestrator
             }
 
             if (remaining <= 0)
+            {
                 continue;
+            }
 
             // Filter to top SurvivalThreshold fraction for parent selection
             var candidates = GetSurvivors(s, selectionOptions.SurvivalThreshold);
@@ -134,7 +140,9 @@ public sealed class ReproductionOrchestrator
         for (int i = 1; i < species.Members.Count; i++)
         {
             if (species.Members[i].Fitness > best.Fitness)
+            {
                 best = species.Members[i];
+            }
         }
         return best.Genome;
     }
@@ -143,7 +151,9 @@ public sealed class ReproductionOrchestrator
         Species species, double survivalThreshold)
     {
         if (species.Members.Count <= 1)
+        {
             return species.Members;
+        }
 
         // Stable sort descending by fitness, take top fraction
         var sorted = species.Members
@@ -173,11 +183,15 @@ public sealed class ReproductionOrchestrator
         foreach (var s in allSpecies)
         {
             if (s.Id != current.Id && s.Members.Count > 0)
+            {
                 eligibleCount++;
+            }
         }
 
         if (eligibleCount == 0)
+        {
             return current; // Fallback to same species
+        }
 
         // Pick a random index among eligible species and iterate to it
         int target = random.Next(eligibleCount);
@@ -187,7 +201,10 @@ public sealed class ReproductionOrchestrator
             if (s.Id != current.Id && s.Members.Count > 0)
             {
                 if (seen == target)
+                {
                     return s;
+                }
+
                 seen++;
             }
         }

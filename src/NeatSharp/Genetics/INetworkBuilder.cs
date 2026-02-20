@@ -26,5 +26,5 @@ public interface INetworkBuilder
     /// Thrown when the genome's enabled connections form a cycle,
     /// making feed-forward evaluation impossible.
     /// </exception>
-    IGenome Build(Genome genome);
+    public IGenome Build(Genome genome);
 }

@@ -31,7 +31,9 @@ public sealed class ReproductionAllocator
         var result = new Dictionary<int, int>();
 
         if (species.Count == 0)
+        {
             return result;
+        }
 
         var selection = _options.Selection;
 
@@ -132,7 +134,9 @@ public sealed class ReproductionAllocator
     {
         var penalty = _options.ComplexityPenalty;
         if (penalty.Coefficient == 0.0 || species.Members.Count == 0)
+        {
             return species.AverageFitness;
+        }
 
         double sum = 0.0;
         foreach (var (genome, fitness) in species.Members)

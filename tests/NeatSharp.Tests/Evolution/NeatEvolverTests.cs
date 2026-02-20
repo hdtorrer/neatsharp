@@ -363,7 +363,11 @@ public class NeatEvolverTests
         var strategy = EvaluationStrategy.FromFunction(genome =>
         {
             int count = Interlocked.Increment(ref evalCount);
-            if (count == 1) throw new InvalidOperationException("Simulated failure");
+            if (count == 1)
+            {
+                throw new InvalidOperationException("Simulated failure");
+            }
+
             return 1.0;
         });
 
@@ -880,7 +884,10 @@ public class NeatEvolverTests
         {
             int count = Interlocked.Increment(ref evalCount);
             if (count % options.PopulationSize == 1) // First genome each generation
+            {
                 throw new InvalidOperationException("Simulated failure");
+            }
+
             return 1.0;
         });
 
@@ -950,7 +957,11 @@ public class NeatEvolverTests
         var strategy = EvaluationStrategy.FromFunction(genome =>
         {
             int count = Interlocked.Increment(ref evalCount);
-            if (count == 3) throw new InvalidOperationException("Genome 2 failed");
+            if (count == 3)
+            {
+                throw new InvalidOperationException("Genome 2 failed");
+            }
+
             return 1.0;
         });
 

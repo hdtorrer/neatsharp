@@ -2,11 +2,21 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageId>NeatSharp.Gpu</PackageId>
+    <Description>GPU acceleration (CUDA via ILGPU) for the NeatSharp NEAT library</Description>
+    <PackageTags>neat;neuroevolution;gpu;cuda;ilgpu;neural-network;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="NeatSharp.Gpu.Tests" />
     <InternalsVisibleTo Include="NeatSharp.Samples" />
+    <InternalsVisibleTo Include="NeatSharp.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>

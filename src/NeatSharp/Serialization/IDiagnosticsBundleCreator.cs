@@ -19,5 +19,5 @@ public interface IDiagnosticsBundleCreator
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="stream"/> or <paramref name="checkpoint"/> is null.
     /// </exception>
-    Task CreateAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
+    public Task CreateAsync(Stream stream, TrainingCheckpoint checkpoint, CancellationToken cancellationToken = default);
 }

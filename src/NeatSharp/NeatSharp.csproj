@@ -2,7 +2,16 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageId>NeatSharp</PackageId>
+    <Description>A GPU-accelerated NEAT (NeuroEvolution of Augmenting Topologies) library for .NET</Description>
+    <PackageTags>neat;neuroevolution;neural-network;genetic-algorithm;machine-learning;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="NeatSharp.Tests" />

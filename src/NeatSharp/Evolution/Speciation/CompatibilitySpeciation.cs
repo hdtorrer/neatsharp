@@ -46,10 +46,14 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
             foreach (var s in species)
             {
                 if (s.Id > maxExistingId)
+                {
                     maxExistingId = s.Id;
+                }
             }
             if (_nextSpeciesId <= maxExistingId)
+            {
                 _nextSpeciesId = maxExistingId + 1;
+            }
         }
 
         // Step 1: Clear members but preserve metadata
@@ -92,7 +96,9 @@ public sealed class CompatibilitySpeciation : ISpeciationStrategy
             for (int i = 1; i < s.Members.Count; i++)
             {
                 if (s.Members[i].Fitness > bestMember.Fitness)
+                {
                     bestMember = s.Members[i];
+                }
             }
 
             s.Representative = bestMember.Genome;

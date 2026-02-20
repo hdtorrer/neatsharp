@@ -82,7 +82,9 @@ public class CompositeMutationOperatorTests
             var result = sut.Mutate(genome, random, tracker);
 
             if (result.Connections[0].Weight != 1.0)
+            {
                 sawWeightChange = true;
+            }
         }
 
         // With perturbRate=0.5 and replaceRate=0.5, both types should be reachable

@@ -1,0 +1,99 @@
+# Top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# files
+[*.cs]
+
+#### Diagnostic severities ####
+
+# IDE0055: Whitespace/formatting rules
+dotnet_diagnostic.IDE0055.severity = warning
+
+# IDE1006: Naming rule violations (suggestion — naming rules cannot be auto-fixed by dotnet format)
+dotnet_diagnostic.IDE1006.severity = suggestion
+
+# IDE0011: Brace enforcement
+dotnet_diagnostic.IDE0011.severity = warning
+
+# IDE0160: Block-scoped namespace (disabled — we prefer file-scoped)
+dotnet_diagnostic.IDE0160.severity = warning
+
+# IDE0161: File-scoped namespace declaration
+dotnet_diagnostic.IDE0161.severity = warning
+
+# IDE0040: Accessibility modifiers
+dotnet_diagnostic.IDE0040.severity = warning
+
+# IDE0007/IDE0008: var preferences (suggestion only)
+dotnet_diagnostic.IDE0007.severity = suggestion
+dotnet_diagnostic.IDE0008.severity = suggestion
+
+#### Code style settings ####
+
+# File-scoped namespaces
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Accessibility modifiers
+dotnet_style_require_accessibility_modifiers = always:warning
+
+# Brace preferences
+csharp_prefer_braces = true:warning
+
+# Expression-bodied members (suggestion level)
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_operators = false:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+csharp_style_expression_bodied_local_functions = false:suggestion
+
+#### Naming rules ####
+
+# Rule: Private const fields must be PascalCase (highest priority to override static rule)
+dotnet_naming_rule.private_const_fields_must_be_pascal_case.symbols = private_const_field_symbols
+dotnet_naming_rule.private_const_fields_must_be_pascal_case.style = pascal_case_style
+dotnet_naming_rule.private_const_fields_must_be_pascal_case.severity = suggestion
+
+# Rule: Private static fields must be s_camelCase
+dotnet_naming_rule.private_static_fields_must_be_s_camel_case.symbols = private_static_field_symbols
+dotnet_naming_rule.private_static_fields_must_be_s_camel_case.style = s_camel_case_style
+dotnet_naming_rule.private_static_fields_must_be_s_camel_case.severity = suggestion
+
+# Rule: Private instance fields must be _camelCase
+dotnet_naming_rule.private_instance_fields_must_be_underscore_camel_case.symbols = private_instance_field_symbols
+dotnet_naming_rule.private_instance_fields_must_be_underscore_camel_case.style = underscore_camel_case_style
+dotnet_naming_rule.private_instance_fields_must_be_underscore_camel_case.severity = suggestion
+
+# Symbols: Private const fields
+dotnet_naming_symbols.private_const_field_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_const_field_symbols.applicable_accessibilities = private
+dotnet_naming_symbols.private_const_field_symbols.required_modifiers = const
+
+# Symbols: Private static fields (non-const)
+dotnet_naming_symbols.private_static_field_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_static_field_symbols.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_field_symbols.required_modifiers = static
+
+# Symbols: Private instance fields
+dotnet_naming_symbols.private_instance_field_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_instance_field_symbols.applicable_accessibilities = private
+
+# Styles
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+
+dotnet_naming_style.s_camel_case_style.required_prefix = s_
+dotnet_naming_style.s_camel_case_style.capitalization = camel_case

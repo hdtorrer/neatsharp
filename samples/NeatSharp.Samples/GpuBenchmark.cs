@@ -380,7 +380,7 @@ public static class GpuBenchmark
         nodes.Add(new NodeGene(nodeId++, NodeType.Output));
 
         // Hidden layers
-        int[] prevLayerIds = [..inputIds, biasId];
+        int[] prevLayerIds = [.. inputIds, biasId];
         for (int layer = 0; layer < hiddenLayers; layer++)
         {
             int[] layerIds = new int[nodesPerLayer];
