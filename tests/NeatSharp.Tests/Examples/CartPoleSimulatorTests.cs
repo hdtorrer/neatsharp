@@ -81,7 +81,7 @@ public class CartPoleSimulatorTests
         }
 
         // Assert: pole angle should have exceeded failure threshold
-        angleFailed.Should().BeTrue("pole angle should exceed 0.2094 radians (~12 degrees)");
+        angleFailed.Should().BeTrue($"pole angle should exceed {config.FailureAngle} radians");
         sim.IsFailed().Should().BeTrue();
     }
 

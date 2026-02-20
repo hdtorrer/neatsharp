@@ -1,7 +1,7 @@
 namespace NeatSharp.Samples.CartPole;
 
 /// <summary>
-/// Configuration for the Cart-Pole physics simulation using canonical Barto/Stanley parameters.
+/// Configuration for the Cart-Pole physics simulation with loosened parameters for demonstration purposes.
 /// </summary>
 public sealed record CartPoleConfig
 {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace NeatSharp.Tools.BenchmarkCompare;
@@ -21,7 +22,7 @@ public static class Program
                     currentPath = args[++i];
                     break;
                 case "--threshold" when i + 1 < args.Length:
-                    threshold = double.Parse(args[++i]);
+                    threshold = double.Parse(args[++i], CultureInfo.InvariantCulture);
                     break;
             }
         }
@@ -100,7 +101,9 @@ public static class Program
 
             if (hasBaseline && hasCurrent)
             {
-                var changePercent = ((currentValue - baselineValue) / baselineValue) * 100;
+                var changePercent = baselineValue > 0
+                    ? ((currentValue - baselineValue) / baselineValue) * 100
+                    : 0.0;
                 var status = changePercent > threshold ? "REGRESS" : "OK";
                 if (changePercent > threshold)
                 {
