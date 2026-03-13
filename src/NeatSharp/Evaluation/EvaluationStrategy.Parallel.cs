@@ -100,7 +100,6 @@ public static partial class EvaluationStrategy
 
             await Parallel.ForEachAsync(indexedGenomes, parallelOptions, (item, ct) =>
             {
-                ct.ThrowIfCancellationRequested();
                 try
                 {
                     var fitness = _fitnessFunction(item.Genome);
@@ -132,10 +131,9 @@ public static partial class EvaluationStrategy
     }
 
     /// <summary>
-    /// Evaluates genomes in parallel using <see cref="SemaphoreSlim"/> to bound concurrency
-    /// and <see cref="Task.WhenAll(Task[])"/> to collect results from an asynchronous fitness function.
-    /// Thread-safety is ensured via a lock-wrapped <c>setFitness</c> callback.
-    /// Errors are accumulated in a <see cref="ConcurrentBag{T}"/>
+    /// Evaluates genomes in parallel using <see cref="Parallel.ForEachAsync{TSource}(IEnumerable{TSource}, ParallelOptions, Func{TSource, CancellationToken, ValueTask})"/>
+    /// with an asynchronous fitness function. Thread-safety is ensured via a lock-wrapped
+    /// <c>setFitness</c> callback. Errors are accumulated in a <see cref="ConcurrentBag{T}"/>
     /// and thrown as an <see cref="EvaluationException"/> after all evaluations complete.
     /// When <see cref="Configuration.EvaluationErrorMode.AssignFitness"/> is configured,
     /// failed genomes receive the configured <see cref="Configuration.EvaluationOptions.ErrorFitnessValue"/>.
@@ -176,55 +174,41 @@ public static partial class EvaluationStrategy
             var syncLock = new object();
             var threadSafeSetFitness = CreateThreadSafeSetFitness(setFitness, syncLock);
             var errors = new ConcurrentBag<(int Index, Exception Error)>();
-            using var semaphore = new SemaphoreSlim(_resolvedMaxDegreeOfParallelism);
 
-            var tasks = new Task[genomes.Count];
-            for (int i = 0; i < genomes.Count; i++)
+            var parallelOptions = new ParallelOptions
             {
-                int index = i;
-                tasks[i] = EvaluateGenomeAsync(
-                    genomes[index], index, semaphore, threadSafeSetFitness, errors, cancellationToken);
-            }
+                MaxDegreeOfParallelism = _resolvedMaxDegreeOfParallelism,
+                CancellationToken = cancellationToken,
+            };
 
-            await Task.WhenAll(tasks);
+            var indexedGenomes = genomes.Select((genome, index) => (Genome: genome, Index: index));
+
+            await Parallel.ForEachAsync(indexedGenomes, parallelOptions, async (item, ct) =>
+            {
+                try
+                {
+                    var fitness = await _fitnessFunction(item.Genome, ct);
+                    threadSafeSetFitness(item.Index, fitness);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (_options.ErrorMode == Configuration.EvaluationErrorMode.AssignFitness)
+                    {
+                        threadSafeSetFitness(item.Index, _options.ErrorFitnessValue);
+                    }
+
+                    errors.Add((item.Index, ex));
+                }
+            });
 
             var exception = ToEvaluationException(errors);
             if (exception is not null)
             {
                 throw exception;
-            }
-        }
-
-        private async Task EvaluateGenomeAsync(
-            IGenome genome,
-            int index,
-            SemaphoreSlim semaphore,
-            Action<int, double> setFitness,
-            ConcurrentBag<(int, Exception)> errors,
-            CancellationToken ct)
-        {
-            await semaphore.WaitAsync(ct);
-            try
-            {
-                var fitness = await _fitnessFunction(genome, ct);
-                setFitness(index, fitness);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                if (_options.ErrorMode == Configuration.EvaluationErrorMode.AssignFitness)
-                {
-                    setFitness(index, _options.ErrorFitnessValue);
-                }
-
-                errors.Add((index, ex));
-            }
-            finally
-            {
-                semaphore.Release();
             }
         }
     }
@@ -286,7 +270,6 @@ public static partial class EvaluationStrategy
 
             await Parallel.ForEachAsync(indexedGenomes, parallelOptions, async (item, ct) =>
             {
-                ct.ThrowIfCancellationRequested();
                 try
                 {
                     var fitness = await _evaluator.EvaluateAsync(item.Genome, ct);

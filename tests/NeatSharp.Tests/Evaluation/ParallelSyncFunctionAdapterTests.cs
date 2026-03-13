@@ -55,7 +55,6 @@ public class ParallelSyncFunctionAdapterTests
             new StubGenome(1, 9),
         };
 
-        var failingIndices = new HashSet<int> { 1, 3 };
         Func<IGenome, double> fitnessFunc = g =>
         {
             var stub = (StubGenome)g;

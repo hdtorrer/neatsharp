@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace NeatSharp.Configuration;
 
 /// <summary>
@@ -26,5 +28,6 @@ public class EvaluationOptions
     /// <c>1</c> reverts to sequential evaluation.
     /// Must be <c>null</c> or >= 1.
     /// </summary>
+    [JsonIgnore]
     public int? MaxDegreeOfParallelism { get; set; }
 }
