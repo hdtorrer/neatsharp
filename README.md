@@ -4,6 +4,7 @@ A GPU-accelerated NEAT (NeuroEvolution of Augmenting Topologies) library for .NE
 
 ## Features
 
+- **Parallel CPU evaluation** across multiple cores for faster fitness scoring
 - **GPU-accelerated fitness evaluation** via CUDA (ILGPU) for high-throughput training
 - **Multi-targeted** .NET 8.0 (LTS) and .NET 9.0
 - **Deterministic CPU runs** with seed control for reproducible experiments
@@ -91,6 +92,20 @@ services.AddNeatSharpGpu();
 
 > **Note:** GPU acceleration requires a CUDA-compatible GPU and the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit) installed on your system. See [GPU Setup](docs/gpu-setup.md) for details.
 
+### Parallel CPU Evaluation
+
+Speed up fitness evaluation by distributing genome evaluations across all CPU cores:
+
+```csharp
+using NeatSharp.Configuration;
+
+var result = await evolver.RunAsync(
+    genome => MyFitnessFunction(genome),
+    new EvaluationOptions { MaxDegreeOfParallelism = null }); // null = all cores
+```
+
+> **Note:** Your fitness function must be thread-safe when using parallel evaluation. See [Parallel Evaluation](docs/parallel-evaluation.md) for details.
+
 ## Examples
 
 Three runnable examples are included in the `samples/` directory:
@@ -100,14 +115,16 @@ Three runnable examples are included in the `samples/` directory:
 | **XOR** | Classic boolean function learning | `dotnet run --project samples/NeatSharp.Samples` |
 | **Sine Approximation** | Continuous function approximation | `dotnet run --project samples/NeatSharp.Samples` |
 | **Cart-Pole** | Inverted pendulum balancing (control task) | `dotnet run --project samples/NeatSharp.Samples -- cart-pole` |
+| **Cart-Pole (parallel)** | Cart-Pole with multi-core evaluation | `dotnet run --project samples/NeatSharp.Samples -- cart-pole --parallel` |
 
-The default command runs both XOR and Sine Approximation examples. Use the `cart-pole` argument to run the inverted pendulum example.
+The default command runs both XOR and Sine Approximation examples. Use `cart-pole` for the inverted pendulum example, and add `--parallel` to enable multi-core fitness evaluation.
 
 ## Documentation
 
 Detailed guides are available in the [`docs/`](docs/) directory:
 
 - [NEAT Basics](docs/neat-basics.md) -- Genomes, species, innovation numbers, and the training loop
+- [Parallel Evaluation](docs/parallel-evaluation.md) -- Multi-core CPU evaluation setup and thread-safety
 - [Parameter Tuning](docs/parameter-tuning.md) -- Key parameters and recommended starting values
 - [Reproducibility](docs/reproducibility.md) -- Determinism guarantees and seed usage patterns
 - [Checkpointing](docs/checkpointing.md) -- Save/restore workflow and versioned checkpoint format

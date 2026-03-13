@@ -148,6 +148,29 @@ options.ComplexityPenalty.Coefficient = 0.001;
 options.ComplexityPenalty.Metric = ComplexityPenaltyMetric.Both;
 ```
 
+## Evaluation Options
+
+**Property**: `NeatSharpOptions.Evaluation` (`EvaluationOptions`)
+
+Controls how fitness evaluation is performed, including parallel execution and error handling.
+
+| Property                  | Type                   | Default          | Description                                              |
+|---------------------------|------------------------|------------------|----------------------------------------------------------|
+| `MaxDegreeOfParallelism`  | `int?`                 | `null` (all cores) | Max concurrent evaluations. `1` = sequential, `null` = all cores. |
+| `ErrorMode`               | `EvaluationErrorMode`  | `AssignFitness`  | How to handle evaluation exceptions.                     |
+| `ErrorFitnessValue`       | `double`               | `0.0`            | Fitness assigned to failed genomes (when `ErrorMode = AssignFitness`). |
+
+```csharp
+options.Evaluation.MaxDegreeOfParallelism = null; // Use all CPU cores
+options.Evaluation.ErrorMode = EvaluationErrorMode.AssignFitness;
+options.Evaluation.ErrorFitnessValue = 0.0;
+```
+
+**Guidelines**:
+- For CPU-bound fitness functions with populations of 100+, parallel evaluation (the default) provides significant speedup.
+- For very lightweight fitness functions (microsecond-scale), set `MaxDegreeOfParallelism = 1` to avoid thread scheduling overhead.
+- Your fitness function must be thread-safe when using parallel evaluation. See the [Parallel Evaluation Guide](parallel-evaluation.md) for details.
+
 ## Recommended Starting Values
 
 ### Classification (XOR-like problems)
@@ -283,5 +306,6 @@ If the species count grows very large with many containing only 1-2 genomes:
 ## Further Reading
 
 - [NEAT Basics](neat-basics.md) -- how NEAT works and NeatSharp type mappings
+- [Parallel Evaluation](parallel-evaluation.md) -- multi-core CPU evaluation and thread-safety
 - [Reproducibility Guide](reproducibility.md) -- deterministic experiments with seeds
 - [Checkpointing Guide](checkpointing.md) -- save/resume for long runs

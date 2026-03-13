@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace NeatSharp.Configuration;
 
 /// <summary>
@@ -16,7 +18,16 @@ public class EvaluationOptions
     /// The fitness value assigned to a genome whose evaluation throws
     /// an exception, when <see cref="ErrorMode"/> is
     /// <see cref="EvaluationErrorMode.AssignFitness"/>.
-    /// Must be finite and non-negative. Default is <c>0.0</c>.
+    /// Must be finite. Default is <c>0.0</c>.
     /// </summary>
     public double ErrorFitnessValue { get; set; }
+
+    /// <summary>
+    /// Maximum number of concurrent genome evaluations.
+    /// <c>null</c> (default) uses all available processor cores.
+    /// <c>1</c> reverts to sequential evaluation.
+    /// Must be <c>null</c> or >= 1.
+    /// </summary>
+    [JsonIgnore]
+    public int? MaxDegreeOfParallelism { get; set; }
 }

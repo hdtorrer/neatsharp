@@ -1,4 +1,5 @@
 using FluentAssertions;
+using NeatSharp.Configuration;
 using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
 using NeatSharp.Genetics;
@@ -278,7 +279,232 @@ public class EvaluationStrategyTests
         capturedStrategy.Should().BeAssignableTo<IEvaluationStrategy>();
     }
 
+    // --- NeatEvolverExtensions overloads with EvaluationOptions ---
+
+    [Fact]
+    public async Task RunAsync_SyncFunctionWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            g => 1.0,
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
+    [Fact]
+    public async Task RunAsync_AsyncFunctionWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            (g, ct) => Task.FromResult(1.0),
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
+    [Fact]
+    public async Task RunAsync_EnvironmentEvaluatorWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            new StubEnvironmentEvaluator(),
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
+    // --- T010: MaxDegreeOfParallelism validation tests ---
+
+    [Fact]
+    public void FromFunction_Sync_MaxDegreeOfParallelismZero_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 0 };
+
+        var act = () => EvaluationStrategy.FromFunction(g => 1.0, options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void FromFunction_Sync_MaxDegreeOfParallelismNegative_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = -1 };
+
+        var act = () => EvaluationStrategy.FromFunction(g => 1.0, options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void FromFunction_Async_MaxDegreeOfParallelismZero_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 0 };
+
+        var act = () => EvaluationStrategy.FromFunction(
+            (g, ct) => Task.FromResult(1.0), options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void FromFunction_Async_MaxDegreeOfParallelismNegative_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = -1 };
+
+        var act = () => EvaluationStrategy.FromFunction(
+            (g, ct) => Task.FromResult(1.0), options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void FromEnvironment_MaxDegreeOfParallelismZero_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 0 };
+
+        var act = () => EvaluationStrategy.FromEnvironment(
+            new StubEnvironmentEvaluator(), options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void FromEnvironment_MaxDegreeOfParallelismNegative_ThrowsArgumentOutOfRangeException()
+    {
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = -1 };
+
+        var act = () => EvaluationStrategy.FromEnvironment(
+            new StubEnvironmentEvaluator(), options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // --- T018: Integration with hybrid evaluator batch adapter ---
+
+    [Fact]
+    public async Task ParallelStrategy_ThroughBatchAdapter_EvaluatesGenomesCorrectly()
+    {
+        // Arrange: create a parallel strategy with MaxDegreeOfParallelism > 1
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 4 };
+        var strategy = EvaluationStrategy.FromFunction(
+            g => g.NodeCount * 10.0, options);
+
+        // Wrap in a batch adapter (same delegation as EvaluationStrategyBatchAdapter in NeatSharp.Gpu)
+        IBatchEvaluator batchAdapter = new StrategyBatchAdapter(strategy);
+
+        var genomes = new List<IGenome>
+        {
+            new StubGenome(3, 5),
+            new StubGenome(4, 6),
+            new StubGenome(7, 2),
+            new StubGenome(1, 8),
+        };
+        var scores = new double[genomes.Count];
+
+        // Act: evaluate through the batch adapter interface
+        await batchAdapter.EvaluateAsync(
+            genomes,
+            (index, fitness) => scores[index] = fitness,
+            CancellationToken.None);
+
+        // Assert: all genomes receive correct fitness
+        scores[0].Should().Be(30.0);
+        scores[1].Should().Be(40.0);
+        scores[2].Should().Be(70.0);
+        scores[3].Should().Be(10.0);
+    }
+
+    [Fact]
+    public async Task ParallelAsyncStrategy_ThroughBatchAdapter_EvaluatesGenomesCorrectly()
+    {
+        // Arrange: create a parallel async strategy
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 2 };
+        var strategy = EvaluationStrategy.FromFunction(
+            (IGenome g, CancellationToken ct) => Task.FromResult(g.NodeCount * 5.0), options);
+
+        IBatchEvaluator batchAdapter = new StrategyBatchAdapter(strategy);
+
+        var genomes = new List<IGenome>
+        {
+            new StubGenome(2, 3),
+            new StubGenome(6, 1),
+            new StubGenome(4, 4),
+        };
+        var scores = new double[genomes.Count];
+
+        // Act
+        await batchAdapter.EvaluateAsync(
+            genomes,
+            (index, fitness) => scores[index] = fitness,
+            CancellationToken.None);
+
+        // Assert
+        scores[0].Should().Be(10.0);
+        scores[1].Should().Be(30.0);
+        scores[2].Should().Be(20.0);
+    }
+
+    [Fact]
+    public async Task ParallelEnvironmentStrategy_ThroughBatchAdapter_EvaluatesGenomesCorrectly()
+    {
+        // Arrange: create a parallel environment strategy
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = 3 };
+        var strategy = EvaluationStrategy.FromEnvironment(
+            new StubEnvironmentEvaluator(), options);
+
+        IBatchEvaluator batchAdapter = new StrategyBatchAdapter(strategy);
+
+        var genomes = new List<IGenome>
+        {
+            new StubGenome(5, 2),
+            new StubGenome(3, 7),
+        };
+        var scores = new double[genomes.Count];
+
+        // Act
+        await batchAdapter.EvaluateAsync(
+            genomes,
+            (index, fitness) => scores[index] = fitness,
+            CancellationToken.None);
+
+        // Assert
+        scores[0].Should().Be(50.0);
+        scores[1].Should().Be(30.0);
+    }
+
     // --- Test doubles ---
+
+    /// <summary>
+    /// Mimics <c>EvaluationStrategyBatchAdapter</c> from NeatSharp.Gpu — wraps an
+    /// <see cref="IEvaluationStrategy"/> as an <see cref="IBatchEvaluator"/>.
+    /// This proves the delegation pattern works with parallel strategies.
+    /// </summary>
+    private sealed class StrategyBatchAdapter(IEvaluationStrategy evaluationStrategy) : IBatchEvaluator
+    {
+        public Task EvaluateAsync(
+            IReadOnlyList<IGenome> genomes,
+            Action<int, double> setFitness,
+            CancellationToken cancellationToken)
+        {
+            return evaluationStrategy.EvaluatePopulationAsync(genomes, setFitness, cancellationToken);
+        }
+    }
 
     private sealed class StubEnvironmentEvaluator : IEnvironmentEvaluator
     {
