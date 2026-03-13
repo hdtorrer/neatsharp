@@ -279,6 +279,56 @@ public class EvaluationStrategyTests
         capturedStrategy.Should().BeAssignableTo<IEvaluationStrategy>();
     }
 
+    // --- NeatEvolverExtensions overloads with EvaluationOptions ---
+
+    [Fact]
+    public async Task RunAsync_SyncFunctionWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            g => 1.0,
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
+    [Fact]
+    public async Task RunAsync_AsyncFunctionWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            (g, ct) => Task.FromResult(1.0),
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
+    [Fact]
+    public async Task RunAsync_EnvironmentEvaluatorWithOptions_DelegatesToEvolverWithParallelStrategy()
+    {
+        var capturedStrategy = default(IEvaluationStrategy);
+        var evolver = new StubEvolver(strategy => capturedStrategy = strategy);
+        var options = new EvaluationOptions { MaxDegreeOfParallelism = null };
+
+        await evolver.RunAsync(
+            new StubEnvironmentEvaluator(),
+            options,
+            CancellationToken.None);
+
+        capturedStrategy.Should().NotBeNull();
+        capturedStrategy!.GetType().Name.Should().Contain("Parallel");
+    }
+
     // --- T010: MaxDegreeOfParallelism validation tests ---
 
     [Fact]

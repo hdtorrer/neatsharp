@@ -98,6 +98,30 @@ public static class NeatEvolverExtensions
     }
 
     /// <summary>
+    /// Runs evolution using a simple synchronous fitness function with evaluation options.
+    /// When <see cref="Configuration.EvaluationOptions.MaxDegreeOfParallelism"/> is <c>null</c>
+    /// or greater than <c>1</c>, genomes are evaluated in parallel across multiple CPU cores.
+    /// </summary>
+    /// <param name="evolver">The evolver instance.</param>
+    /// <param name="fitnessFunction">
+    /// A function that takes a genome and returns its fitness score.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The evolution result.</returns>
+    public static Task<EvolutionResult> RunAsync(
+        this INeatEvolver evolver,
+        Func<IGenome, double> fitnessFunction,
+        Configuration.EvaluationOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        return evolver.RunAsync(
+            EvaluationStrategy.FromFunction(fitnessFunction, options),
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Runs evolution using an asynchronous fitness function.
     /// </summary>
     /// <param name="evolver">The evolver instance.</param>
@@ -118,6 +142,31 @@ public static class NeatEvolverExtensions
     }
 
     /// <summary>
+    /// Runs evolution using an asynchronous fitness function with evaluation options.
+    /// When <see cref="Configuration.EvaluationOptions.MaxDegreeOfParallelism"/> is <c>null</c>
+    /// or greater than <c>1</c>, genomes are evaluated in parallel across multiple CPU cores.
+    /// </summary>
+    /// <param name="evolver">The evolver instance.</param>
+    /// <param name="fitnessFunction">
+    /// An async function that takes a genome and cancellation token
+    /// and returns its fitness score.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The evolution result.</returns>
+    public static Task<EvolutionResult> RunAsync(
+        this INeatEvolver evolver,
+        Func<IGenome, CancellationToken, Task<double>> fitnessFunction,
+        Configuration.EvaluationOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        return evolver.RunAsync(
+            EvaluationStrategy.FromFunction(fitnessFunction, options),
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Runs evolution using an environment evaluator for episode-based evaluation.
     /// </summary>
     /// <param name="evolver">The evolver instance.</param>
@@ -133,6 +182,30 @@ public static class NeatEvolverExtensions
     {
         return evolver.RunAsync(
             EvaluationStrategy.FromEnvironment(evaluator),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs evolution using an environment evaluator with evaluation options.
+    /// When <see cref="Configuration.EvaluationOptions.MaxDegreeOfParallelism"/> is <c>null</c>
+    /// or greater than <c>1</c>, genomes are evaluated in parallel across multiple CPU cores.
+    /// </summary>
+    /// <param name="evolver">The evolver instance.</param>
+    /// <param name="evaluator">
+    /// The environment evaluator that runs each genome through an episode.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The evolution result.</returns>
+    public static Task<EvolutionResult> RunAsync(
+        this INeatEvolver evolver,
+        IEnvironmentEvaluator evaluator,
+        Configuration.EvaluationOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        return evolver.RunAsync(
+            EvaluationStrategy.FromEnvironment(evaluator, options),
             cancellationToken);
     }
 

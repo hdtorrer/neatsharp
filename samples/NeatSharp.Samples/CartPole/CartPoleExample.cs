@@ -3,11 +3,12 @@ using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NeatSharp.Configuration;
+using NeatSharp.Evaluation;
 using NeatSharp.Evolution;
 using NeatSharp.Extensions;
 using NeatSharp.Genetics;
 using NeatSharp.Reporting;
-using NeatSharp.Configuration;
 
 namespace NeatSharp.Samples.CartPole;
 
@@ -28,13 +29,42 @@ public static class CartPoleExample
     /// <summary>
     /// Runs the Cart-Pole evolution example.
     /// </summary>
-    public static async Task RunAsync()
+    /// <param name="args">
+    /// Optional arguments: <c>--parallel [N]</c> to enable parallel fitness evaluation.
+    /// <c>N</c> is the optional max degree of parallelism (default: all cores).
+    /// </param>
+    public static async Task RunAsync(string[]? args = null)
     {
+        // Parse --parallel [N] flag
+        args ??= [];
+        int? maxDegreeOfParallelism = null;
+        bool useParallel = false;
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--parallel")
+            {
+                useParallel = true;
+                if (i + 1 < args.Length && int.TryParse(args[i + 1], out int cores) && cores >= 1)
+                {
+                    maxDegreeOfParallelism = cores;
+                    i++;
+                }
+            }
+        }
+
         Console.WriteLine("--- Cart-Pole Balancing ---");
         Console.WriteLine();
         Console.WriteLine("Goal: Evolve a neural network to balance an inverted pendulum on a cart.");
         Console.WriteLine("Inputs: cart position (x), cart velocity (x_dot), pole angle (theta), pole angular velocity (theta_dot)");
         Console.WriteLine("Outputs: force magnitude (0 to ForceMagnitude) + force direction (>0.5 = right, else left)");
+        if (useParallel)
+        {
+            string coreDesc = maxDegreeOfParallelism.HasValue
+                ? $"{maxDegreeOfParallelism} cores"
+                : $"all cores ({Environment.ProcessorCount})";
+            Console.WriteLine($"Parallel evaluation: {coreDesc}");
+        }
+
         Console.WriteLine();
 
         // Cart-Pole physics configuration with canonical Barto/Stanley parameters
@@ -74,9 +104,8 @@ public static class CartPoleExample
             (0.0, -1.0),
         ];
 
-        // Run evolution with the Cart-Pole fitness function
-        var sw = Stopwatch.StartNew();
-        var result = await evolver.RunAsync(genome =>
+        // Define the Cart-Pole fitness function (thread-safe: no shared mutable state)
+        Func<IGenome, double> fitnessFunction = genome =>
         {
             double totalFitness = 0;
 
@@ -124,7 +153,21 @@ public static class CartPoleExample
 
             // Average fitness across all trials
             return totalFitness / trials.Length;
-        });
+        };
+
+        // Run evolution — use parallel evaluation when --parallel is specified
+        var sw = Stopwatch.StartNew();
+        EvolutionResult result;
+        if (useParallel)
+        {
+            var evalOptions = new EvaluationOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism };
+            result = await evolver.RunAsync(fitnessFunction, evalOptions);
+        }
+        else
+        {
+            result = await evolver.RunAsync(fitnessFunction);
+        }
+
         sw.Stop();
 
         // Print evolution summary

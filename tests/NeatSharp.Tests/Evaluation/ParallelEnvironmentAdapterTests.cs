@@ -163,6 +163,40 @@ public class ParallelEnvironmentAdapterTests
     }
 
     [Fact]
+    public async Task EvaluatePopulationAsync_ErrorModeAssignFitness_AssignsDefaultFitnessToFailedGenomes()
+    {
+        var genomes = new List<IGenome>
+        {
+            new StubGenome(3, 5),
+            new StubGenome(4, 6),
+            new StubGenome(7, 2),
+        };
+
+        var evaluator = new FailingEnvironmentEvaluator(new HashSet<int> { 4 });
+        var options = new EvaluationOptions
+        {
+            MaxDegreeOfParallelism = null,
+            ErrorMode = EvaluationErrorMode.AssignFitness,
+            ErrorFitnessValue = -1.0,
+        };
+
+        var scores = new double[genomes.Count];
+        var strategy = EvaluationStrategy.FromEnvironment(evaluator, options);
+
+        var act = async () => await strategy.EvaluatePopulationAsync(
+            genomes,
+            (index, fitness) => scores[index] = fitness,
+            CancellationToken.None);
+
+        var exception = await act.Should().ThrowAsync<EvaluationException>();
+        exception.Which.Errors.Should().HaveCount(1);
+
+        scores[0].Should().Be(30.0);
+        scores[1].Should().Be(-1.0);
+        scores[2].Should().Be(70.0);
+    }
+
+    [Fact]
     public async Task EvaluatePopulationAsync_MaxDegreeOfParallelism2_LimitsConcurrentEvaluationsTo2()
     {
         const int genomeCount = 10;
