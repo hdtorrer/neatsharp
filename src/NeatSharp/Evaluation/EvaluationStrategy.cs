@@ -99,10 +99,12 @@ public static partial class EvaluationStrategy
 
         if (options.MaxDegreeOfParallelism == 1)
         {
-            return new SyncFunctionAdapter(fitnessFunction);
+            return new SyncFunctionAdapter(fitnessFunction, options);
         }
 
-        return new ParallelSyncFunctionAdapter(fitnessFunction, options);
+        return new ParallelAdapter(
+            (genome, _) => new ValueTask<double>(fitnessFunction(genome)),
+            options);
     }
 
     /// <summary>
@@ -132,10 +134,12 @@ public static partial class EvaluationStrategy
 
         if (options.MaxDegreeOfParallelism == 1)
         {
-            return new AsyncFunctionAdapter(fitnessFunction);
+            return new AsyncFunctionAdapter(fitnessFunction, options);
         }
 
-        return new ParallelAsyncFunctionAdapter(fitnessFunction, options);
+        return new ParallelAdapter(
+            (genome, ct) => new ValueTask<double>(fitnessFunction(genome, ct)),
+            options);
     }
 
     /// <summary>
@@ -162,10 +166,12 @@ public static partial class EvaluationStrategy
 
         if (options.MaxDegreeOfParallelism == 1)
         {
-            return new EnvironmentAdapter(evaluator);
+            return new EnvironmentAdapter(evaluator, options);
         }
 
-        return new ParallelEnvironmentAdapter(evaluator, options);
+        return new ParallelAdapter(
+            (genome, ct) => new ValueTask<double>(evaluator.EvaluateAsync(genome, ct)),
+            options);
     }
 
     /// <summary>
@@ -185,7 +191,9 @@ public static partial class EvaluationStrategy
         }
     }
 
-    private sealed class SyncFunctionAdapter(Func<IGenome, double> fitnessFunction) : IEvaluationStrategy
+    private sealed class SyncFunctionAdapter(
+        Func<IGenome, double> fitnessFunction,
+        EvaluationOptions? options = null) : IEvaluationStrategy
     {
         public Task EvaluatePopulationAsync(
             IReadOnlyList<IGenome> genomes,
@@ -208,6 +216,11 @@ public static partial class EvaluationStrategy
                 }
                 catch (Exception ex)
                 {
+                    if (options?.ErrorMode == EvaluationErrorMode.AssignFitness)
+                    {
+                        setFitness(i, options.ErrorFitnessValue);
+                    }
+
                     (errors ??= []).Add((i, ex));
                 }
             }
@@ -221,7 +234,9 @@ public static partial class EvaluationStrategy
         }
     }
 
-    private sealed class AsyncFunctionAdapter(Func<IGenome, CancellationToken, Task<double>> fitnessFunction) : IEvaluationStrategy
+    private sealed class AsyncFunctionAdapter(
+        Func<IGenome, CancellationToken, Task<double>> fitnessFunction,
+        EvaluationOptions? options = null) : IEvaluationStrategy
     {
         public async Task EvaluatePopulationAsync(
             IReadOnlyList<IGenome> genomes,
@@ -244,6 +259,11 @@ public static partial class EvaluationStrategy
                 }
                 catch (Exception ex)
                 {
+                    if (options?.ErrorMode == EvaluationErrorMode.AssignFitness)
+                    {
+                        setFitness(i, options.ErrorFitnessValue);
+                    }
+
                     (errors ??= []).Add((i, ex));
                 }
             }
@@ -255,7 +275,9 @@ public static partial class EvaluationStrategy
         }
     }
 
-    private sealed class EnvironmentAdapter(IEnvironmentEvaluator evaluator) : IEvaluationStrategy
+    private sealed class EnvironmentAdapter(
+        IEnvironmentEvaluator evaluator,
+        EvaluationOptions? options = null) : IEvaluationStrategy
     {
         public async Task EvaluatePopulationAsync(
             IReadOnlyList<IGenome> genomes,
@@ -278,6 +300,11 @@ public static partial class EvaluationStrategy
                 }
                 catch (Exception ex)
                 {
+                    if (options?.ErrorMode == EvaluationErrorMode.AssignFitness)
+                    {
+                        setFitness(i, options.ErrorFitnessValue);
+                    }
+
                     (errors ??= []).Add((i, ex));
                 }
             }

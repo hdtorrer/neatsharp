@@ -4,7 +4,7 @@ using NeatSharp.Genetics;
 namespace NeatSharp.Evaluation;
 
 /// <summary>
-/// Parallel evaluation adapters and shared helpers for <see cref="EvaluationStrategy"/>.
+/// Parallel evaluation adapter and shared helpers for <see cref="EvaluationStrategy"/>.
 /// </summary>
 public static partial class EvaluationStrategy
 {
@@ -47,7 +47,7 @@ public static partial class EvaluationStrategy
 
     /// <summary>
     /// Evaluates genomes in parallel using <see cref="Parallel.ForEachAsync{TSource}(IEnumerable{TSource}, ParallelOptions, Func{TSource, CancellationToken, ValueTask})"/>
-    /// with a synchronous fitness function. Thread-safety is ensured via a lock-wrapped
+    /// with a caller-supplied evaluation delegate. Thread-safety is ensured via a lock-wrapped
     /// <c>setFitness</c> callback. Errors are accumulated in a <see cref="ConcurrentBag{T}"/>
     /// and thrown as an <see cref="EvaluationException"/> after all evaluations complete.
     /// When <see cref="Configuration.EvaluationErrorMode.AssignFitness"/> is configured,
@@ -55,10 +55,10 @@ public static partial class EvaluationStrategy
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <strong>Thread-safety requirement (FR-013):</strong> The user-provided fitness function
-    /// passed to this adapter will be invoked concurrently from multiple threads. Callers must
-    /// ensure their fitness function is thread-safe — it must not mutate shared state without
-    /// proper synchronization.
+    /// <strong>Thread-safety requirement (FR-013):</strong> The user-provided evaluation logic
+    /// will be invoked concurrently from multiple threads. Callers must ensure their evaluation
+    /// function or evaluator is thread-safe — it must not mutate shared state without proper
+    /// synchronization.
     /// </para>
     /// <para>
     /// The <c>setFitness</c> callback provided to
@@ -66,102 +66,17 @@ public static partial class EvaluationStrategy
     /// by this adapter via a lock wrapper; callers do not need to synchronize it themselves.
     /// </para>
     /// </remarks>
-    private sealed class ParallelSyncFunctionAdapter : IEvaluationStrategy
+    private sealed class ParallelAdapter : IEvaluationStrategy
     {
-        private readonly Func<IGenome, double> _fitnessFunction;
+        private readonly Func<IGenome, CancellationToken, ValueTask<double>> _evaluateFunc;
         private readonly Configuration.EvaluationOptions _options;
         private readonly int _resolvedMaxDegreeOfParallelism;
 
-        public ParallelSyncFunctionAdapter(
-            Func<IGenome, double> fitnessFunction,
+        public ParallelAdapter(
+            Func<IGenome, CancellationToken, ValueTask<double>> evaluateFunc,
             Configuration.EvaluationOptions options)
         {
-            _fitnessFunction = fitnessFunction;
-            _options = options;
-            _resolvedMaxDegreeOfParallelism = options.MaxDegreeOfParallelism ?? Environment.ProcessorCount;
-        }
-
-        public async Task EvaluatePopulationAsync(
-            IReadOnlyList<IGenome> genomes,
-            Action<int, double> setFitness,
-            CancellationToken cancellationToken)
-        {
-            var syncLock = new object();
-            var threadSafeSetFitness = CreateThreadSafeSetFitness(setFitness, syncLock);
-            var errors = new ConcurrentBag<(int Index, Exception Error)>();
-
-            var parallelOptions = new ParallelOptions
-            {
-                MaxDegreeOfParallelism = _resolvedMaxDegreeOfParallelism,
-                CancellationToken = cancellationToken,
-            };
-
-            var indexedGenomes = genomes.Select((genome, index) => (Genome: genome, Index: index));
-
-            await Parallel.ForEachAsync(indexedGenomes, parallelOptions, (item, ct) =>
-            {
-                try
-                {
-                    var fitness = _fitnessFunction(item.Genome);
-                    threadSafeSetFitness(item.Index, fitness);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (_options.ErrorMode == Configuration.EvaluationErrorMode.AssignFitness)
-                    {
-                        threadSafeSetFitness(item.Index, _options.ErrorFitnessValue);
-                    }
-
-                    errors.Add((item.Index, ex));
-                }
-
-                return ValueTask.CompletedTask;
-            });
-
-            var exception = ToEvaluationException(errors);
-            if (exception is not null)
-            {
-                throw exception;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Evaluates genomes in parallel using <see cref="Parallel.ForEachAsync{TSource}(IEnumerable{TSource}, ParallelOptions, Func{TSource, CancellationToken, ValueTask})"/>
-    /// with an asynchronous fitness function. Thread-safety is ensured via a lock-wrapped
-    /// <c>setFitness</c> callback. Errors are accumulated in a <see cref="ConcurrentBag{T}"/>
-    /// and thrown as an <see cref="EvaluationException"/> after all evaluations complete.
-    /// When <see cref="Configuration.EvaluationErrorMode.AssignFitness"/> is configured,
-    /// failed genomes receive the configured <see cref="Configuration.EvaluationOptions.ErrorFitnessValue"/>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>Thread-safety requirement (FR-013):</strong> The user-provided async fitness function
-    /// passed to this adapter will be invoked concurrently from multiple threads. Callers must
-    /// ensure their fitness function is thread-safe — it must not mutate shared state without
-    /// proper synchronization.
-    /// </para>
-    /// <para>
-    /// The <c>setFitness</c> callback provided to
-    /// <see cref="IEvaluationStrategy.EvaluatePopulationAsync"/> is automatically synchronized
-    /// by this adapter via a lock wrapper; callers do not need to synchronize it themselves.
-    /// </para>
-    /// </remarks>
-    private sealed class ParallelAsyncFunctionAdapter : IEvaluationStrategy
-    {
-        private readonly Func<IGenome, CancellationToken, Task<double>> _fitnessFunction;
-        private readonly Configuration.EvaluationOptions _options;
-        private readonly int _resolvedMaxDegreeOfParallelism;
-
-        public ParallelAsyncFunctionAdapter(
-            Func<IGenome, CancellationToken, Task<double>> fitnessFunction,
-            Configuration.EvaluationOptions options)
-        {
-            _fitnessFunction = fitnessFunction;
+            _evaluateFunc = evaluateFunc;
             _options = options;
             _resolvedMaxDegreeOfParallelism = options.MaxDegreeOfParallelism ?? Environment.ProcessorCount;
         }
@@ -187,92 +102,7 @@ public static partial class EvaluationStrategy
             {
                 try
                 {
-                    var fitness = await _fitnessFunction(item.Genome, ct);
-                    threadSafeSetFitness(item.Index, fitness);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (_options.ErrorMode == Configuration.EvaluationErrorMode.AssignFitness)
-                    {
-                        threadSafeSetFitness(item.Index, _options.ErrorFitnessValue);
-                    }
-
-                    errors.Add((item.Index, ex));
-                }
-            });
-
-            var exception = ToEvaluationException(errors);
-            if (exception is not null)
-            {
-                throw exception;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Evaluates genomes in parallel using <see cref="Parallel.ForEachAsync{TSource}(IEnumerable{TSource}, ParallelOptions, Func{TSource, CancellationToken, ValueTask})"/>
-    /// with an <see cref="IEnvironmentEvaluator"/>. Thread-safety is ensured via a lock-wrapped
-    /// <c>setFitness</c> callback. Errors are accumulated in a <see cref="ConcurrentBag{T}"/>
-    /// and thrown as an <see cref="EvaluationException"/> after all evaluations complete.
-    /// When <see cref="Configuration.EvaluationErrorMode.AssignFitness"/> is configured,
-    /// failed genomes receive the configured <see cref="Configuration.EvaluationOptions.ErrorFitnessValue"/>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>Thread-safety requirement (FR-013):</strong> The user-provided
-    /// <see cref="IEnvironmentEvaluator"/> passed to this adapter will have its
-    /// <see cref="IEnvironmentEvaluator.EvaluateAsync"/> method invoked concurrently from
-    /// multiple threads. Callers must ensure their evaluator implementation is thread-safe —
-    /// it must not mutate shared state without proper synchronization. Typically each call
-    /// should create its own environment instance or use thread-local state.
-    /// </para>
-    /// <para>
-    /// The <c>setFitness</c> callback provided to
-    /// <see cref="IEvaluationStrategy.EvaluatePopulationAsync"/> is automatically synchronized
-    /// by this adapter via a lock wrapper; callers do not need to synchronize it themselves.
-    /// </para>
-    /// </remarks>
-    private sealed class ParallelEnvironmentAdapter : IEvaluationStrategy
-    {
-        private readonly IEnvironmentEvaluator _evaluator;
-        private readonly Configuration.EvaluationOptions _options;
-        private readonly int _resolvedMaxDegreeOfParallelism;
-
-        public ParallelEnvironmentAdapter(
-            IEnvironmentEvaluator evaluator,
-            Configuration.EvaluationOptions options)
-        {
-            _evaluator = evaluator;
-            _options = options;
-            _resolvedMaxDegreeOfParallelism = options.MaxDegreeOfParallelism ?? Environment.ProcessorCount;
-        }
-
-        public async Task EvaluatePopulationAsync(
-            IReadOnlyList<IGenome> genomes,
-            Action<int, double> setFitness,
-            CancellationToken cancellationToken)
-        {
-            var syncLock = new object();
-            var threadSafeSetFitness = CreateThreadSafeSetFitness(setFitness, syncLock);
-            var errors = new ConcurrentBag<(int Index, Exception Error)>();
-
-            var parallelOptions = new ParallelOptions
-            {
-                MaxDegreeOfParallelism = _resolvedMaxDegreeOfParallelism,
-                CancellationToken = cancellationToken,
-            };
-
-            var indexedGenomes = genomes.Select((genome, index) => (Genome: genome, Index: index));
-
-            await Parallel.ForEachAsync(indexedGenomes, parallelOptions, async (item, ct) =>
-            {
-                try
-                {
-                    var fitness = await _evaluator.EvaluateAsync(item.Genome, ct);
+                    var fitness = await _evaluateFunc(item.Genome, ct);
                     threadSafeSetFitness(item.Index, fitness);
                 }
                 catch (OperationCanceledException)

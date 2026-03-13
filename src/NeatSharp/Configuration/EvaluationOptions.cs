@@ -18,7 +18,7 @@ public class EvaluationOptions
     /// The fitness value assigned to a genome whose evaluation throws
     /// an exception, when <see cref="ErrorMode"/> is
     /// <see cref="EvaluationErrorMode.AssignFitness"/>.
-    /// Must be finite and non-negative. Default is <c>0.0</c>.
+    /// Must be finite. Default is <c>0.0</c>.
     /// </summary>
     public double ErrorFitnessValue { get; set; }
 
