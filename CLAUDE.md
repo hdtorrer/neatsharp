@@ -14,6 +14,7 @@ Auto-generated from all feature plans. Last updated: 2026-02-12
 - N/A (in-memory only; PID controller state and metrics held in-memory per scope) (007-hybrid-eval-scheduler)
 - C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>` + Existing — Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2, ILGPU 1.5.3, ILGPU.Algorithms 1.5.3; New — BenchmarkDotNet (benchmarks project only, not shipped in NuGet packages) (008-release-readiness)
 - N/A (no new data storage; benchmark baselines stored as JSON files in version control) (008-release-readiness)
+- C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted + Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2 (existing; no new dependencies) (009-parallel-cpu-eval)
 
 - C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>` + Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2 (001-core-api-baseline)
 
@@ -78,9 +79,9 @@ dotnet run --project tools/benchmark-compare -- --baseline benchmarks/baseline.j
 - See `.editorconfig` for full rule set
 
 ## Recent Changes
+- 009-parallel-cpu-eval: Added C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted + Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2 (existing; no new dependencies)
 - 008-release-readiness: Added C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>` + Existing — Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2, ILGPU 1.5.3, ILGPU.Algorithms 1.5.3; New — BenchmarkDotNet (benchmarks project only, not shipped in NuGet packages)
 - 007-hybrid-eval-scheduler: Added C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>` + Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2 (shared with core and GPU); ILGPU 1.5.x (transitive via NeatSharp.Gpu)
-- 006-cuda-evaluator: Added C# 13 / .NET 8.0 (LTS) + .NET 9.0 (Current) — multi-targeted via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>` + ILGPU 1.5.x, ILGPU.Algorithms 1.5.x (GPU package only); Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Options 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.2 (shared with core)
 
 
 <!-- MANUAL ADDITIONS START -->
