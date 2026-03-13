@@ -19,8 +19,8 @@
 
 **Purpose**: Make `EvaluationStrategy` partial-class-ready and add the `MaxDegreeOfParallelism` configuration property
 
-- [ ] T001 Add `partial` modifier to existing `EvaluationStrategy` static class in `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
-- [ ] T002 Add `MaxDegreeOfParallelism` property (`int?`, default `null`) to `src/NeatSharp/Configuration/EvaluationOptions.cs` with XML doc comment per contracts/api-changes.md
+- [X] T001 Add `partial` modifier to existing `EvaluationStrategy` static class in `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
+- [X] T002 Add `MaxDegreeOfParallelism` property (`int?`, default `null`) to `src/NeatSharp/Configuration/EvaluationOptions.cs` with XML doc comment per contracts/api-changes.md
 
 ---
 
@@ -30,9 +30,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add validation for `MaxDegreeOfParallelism` (must be `null` or `≥ 1`; throw `ArgumentOutOfRangeException` for `≤ 0`) in the new factory overloads in `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
-- [ ] T004 Add `EvaluationOptions`-accepting factory overloads (`FromFunction` sync, `FromFunction` async, `FromEnvironment`) to `src/NeatSharp/Evaluation/EvaluationStrategy.cs` — when `MaxDegreeOfParallelism == 1` or options not provided, return existing sequential adapters; when `null` or `> 1`, return parallel adapters (stub with `throw new NotImplementedException()` until Phase 3)
-- [ ] T005 Create partial class file `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` with the `EvaluationStrategy` partial class shell and shared helper: lock-wrapped `setFitness` callback wrapper and `ConcurrentBag<(int, Exception)>` error-to-`EvaluationException` conversion method
+- [X] T003 Add validation for `MaxDegreeOfParallelism` (must be `null` or `≥ 1`; throw `ArgumentOutOfRangeException` for `≤ 0`) in the new factory overloads in `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
+- [X] T004 Add `EvaluationOptions`-accepting factory overloads (`FromFunction` sync, `FromFunction` async, `FromEnvironment`) to `src/NeatSharp/Evaluation/EvaluationStrategy.cs` — when `MaxDegreeOfParallelism == 1` or options not provided, return existing sequential adapters; when `null` or `> 1`, return parallel adapters (stub with `throw new NotImplementedException()` until Phase 3)
+- [X] T005 Create partial class file `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` with the `EvaluationStrategy` partial class shell and shared helper: lock-wrapped `setFitness` callback wrapper and `ConcurrentBag<(int, Exception)>` error-to-`EvaluationException` conversion method
 
 **Checkpoint**: Factory overloads compile, existing tests still pass, parallel adapter file exists as shell
 
@@ -48,12 +48,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Create `tests/NeatSharp.Tests/Evaluation/ParallelSyncFunctionAdapterTests.cs` with tests: (1) all genomes receive correct fitness scores matching sequential results, (2) error accumulation — some genomes throw, remaining get correct scores and `EvaluationException` contains all failures, (3) `ErrorMode.AssignFitness` assigns default fitness to failed genomes, (4) cancellation token is respected — already-completed scores preserved, (5) population size smaller than `MaxDegreeOfParallelism` — uses only as many threads as genomes, (6) all genomes throw — aggregated error contains all failures and all genomes receive default fitness if error mode permits
+- [X] T006 [P] [US1] Create `tests/NeatSharp.Tests/Evaluation/ParallelSyncFunctionAdapterTests.cs` with tests: (1) all genomes receive correct fitness scores matching sequential results, (2) error accumulation — some genomes throw, remaining get correct scores and `EvaluationException` contains all failures, (3) `ErrorMode.AssignFitness` assigns default fitness to failed genomes, (4) cancellation token is respected — already-completed scores preserved, (5) population size smaller than `MaxDegreeOfParallelism` — uses only as many threads as genomes, (6) all genomes throw — aggregated error contains all failures and all genomes receive default fitness if error mode permits
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement `ParallelSyncFunctionAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `Parallel.ForEachAsync` with `MaxDegreeOfParallelism` from options, `ConcurrentBag` error accumulation, lock-wrapped `setFitness` callback, cancellation token propagation
-- [ ] T008 [US1] Wire `FromFunction(Func<IGenome, double>, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelSyncFunctionAdapter` when `MaxDegreeOfParallelism != 1` (replace `NotImplementedException` stub from T004)
+- [X] T007 [US1] Implement `ParallelSyncFunctionAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `Parallel.ForEachAsync` with `MaxDegreeOfParallelism` from options, `ConcurrentBag` error accumulation, lock-wrapped `setFitness` callback, cancellation token propagation
+- [X] T008 [US1] Wire `FromFunction(Func<IGenome, double>, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelSyncFunctionAdapter` when `MaxDegreeOfParallelism != 1` (replace `NotImplementedException` stub from T004)
 
 **Checkpoint**: Sync parallel evaluation works end-to-end. All T006 tests pass. Existing sequential tests unaffected.
 
@@ -69,12 +69,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [P] [US2] Add tests to `tests/NeatSharp.Tests/Evaluation/ParallelSyncFunctionAdapterTests.cs`: (1) `MaxDegreeOfParallelism = 2` limits concurrent evaluations to 2 (use a `SemaphoreSlim`-based fitness function that tracks max concurrency), (2) `MaxDegreeOfParallelism = null` uses all cores (verify evaluations run), (3) `MaxDegreeOfParallelism = 1` produces sequential behavior (factory returns sequential adapter)
-- [ ] T010 [P] [US2] Add validation tests to `tests/NeatSharp.Tests/Evaluation/EvaluationStrategyTests.cs`: (1) `MaxDegreeOfParallelism = 0` throws `ArgumentOutOfRangeException`, (2) `MaxDegreeOfParallelism = -1` throws `ArgumentOutOfRangeException`
+- [X] T009 [P] [US2] Add tests to `tests/NeatSharp.Tests/Evaluation/ParallelSyncFunctionAdapterTests.cs`: (1) `MaxDegreeOfParallelism = 2` limits concurrent evaluations to 2 (use a `SemaphoreSlim`-based fitness function that tracks max concurrency), (2) `MaxDegreeOfParallelism = null` uses all cores (verify evaluations run), (3) `MaxDegreeOfParallelism = 1` produces sequential behavior (factory returns sequential adapter)
+- [X] T010 [P] [US2] Add validation tests to `tests/NeatSharp.Tests/Evaluation/EvaluationStrategyTests.cs`: (1) `MaxDegreeOfParallelism = 0` throws `ArgumentOutOfRangeException`, (2) `MaxDegreeOfParallelism = -1` throws `ArgumentOutOfRangeException`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Verify `MaxDegreeOfParallelism` flows correctly through `ParallelSyncFunctionAdapter` to `ParallelOptions.MaxDegreeOfParallelism` in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — resolve `null` to `Environment.ProcessorCount` at adapter construction
+- [X] T011 [US2] Verify `MaxDegreeOfParallelism` flows correctly through `ParallelSyncFunctionAdapter` to `ParallelOptions.MaxDegreeOfParallelism` in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — resolve `null` to `Environment.ProcessorCount` at adapter construction
 
 **Checkpoint**: Concurrency control works as specified. Validation rejects invalid values.
 
@@ -92,12 +92,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US3] Create `tests/NeatSharp.Tests/Evaluation/ParallelAsyncFunctionAdapterTests.cs` with tests: (1) all genomes receive correct fitness, (2) error accumulation with partial failures, (3) `ErrorMode.AssignFitness` for failed genomes, (4) cancellation preserves completed scores, (5) `MaxDegreeOfParallelism` bounds concurrent async evaluations, (6) population size smaller than `MaxDegreeOfParallelism` — completes without error, (7) all genomes throw — aggregated error contains all failures and default fitness assigned if error mode permits
+- [X] T012 [P] [US3] Create `tests/NeatSharp.Tests/Evaluation/ParallelAsyncFunctionAdapterTests.cs` with tests: (1) all genomes receive correct fitness, (2) error accumulation with partial failures, (3) `ErrorMode.AssignFitness` for failed genomes, (4) cancellation preserves completed scores, (5) `MaxDegreeOfParallelism` bounds concurrent async evaluations, (6) population size smaller than `MaxDegreeOfParallelism` — completes without error, (7) all genomes throw — aggregated error contains all failures and default fitness assigned if error mode permits
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Implement `ParallelAsyncFunctionAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `SemaphoreSlim(maxDegreeOfParallelism)` + `Task.WhenAll`, `ConcurrentBag` error accumulation, lock-wrapped callback, cancellation token propagation
-- [ ] T014 [US3] Wire `FromFunction(Func<IGenome, CancellationToken, Task<double>>, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelAsyncFunctionAdapter` when `MaxDegreeOfParallelism != 1`
+- [X] T013 [US3] Implement `ParallelAsyncFunctionAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `SemaphoreSlim(maxDegreeOfParallelism)` + `Task.WhenAll`, `ConcurrentBag` error accumulation, lock-wrapped callback, cancellation token propagation
+- [X] T014 [US3] Wire `FromFunction(Func<IGenome, CancellationToken, Task<double>>, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelAsyncFunctionAdapter` when `MaxDegreeOfParallelism != 1`
 
 **Checkpoint**: Async parallel evaluation works with full error resilience. Both sync and async paths handle failures identically.
 
@@ -113,12 +113,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US4] Create `tests/NeatSharp.Tests/Evaluation/ParallelEnvironmentAdapterTests.cs` with tests: (1) all genomes receive correct fitness matching sequential, (2) error accumulation with partial failures, (3) `MaxDegreeOfParallelism` bounds concurrent environment evaluations, (4) cancellation support, (5) population size smaller than `MaxDegreeOfParallelism` — completes without error, (6) all genomes throw — aggregated error contains all failures and default fitness assigned if error mode permits
+- [X] T015 [P] [US4] Create `tests/NeatSharp.Tests/Evaluation/ParallelEnvironmentAdapterTests.cs` with tests: (1) all genomes receive correct fitness matching sequential, (2) error accumulation with partial failures, (3) `MaxDegreeOfParallelism` bounds concurrent environment evaluations, (4) cancellation support, (5) population size smaller than `MaxDegreeOfParallelism` — completes without error, (6) all genomes throw — aggregated error contains all failures and default fitness assigned if error mode permits
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Implement `ParallelEnvironmentAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `Parallel.ForEachAsync` (same pattern as sync adapter but calling `IEnvironmentEvaluator.EvaluateAsync`), `ConcurrentBag` error accumulation, lock-wrapped callback
-- [ ] T017 [US4] Wire `FromEnvironment(IEnvironmentEvaluator, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelEnvironmentAdapter` when `MaxDegreeOfParallelism != 1`
+- [X] T016 [US4] Implement `ParallelEnvironmentAdapter` nested class in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` — use `Parallel.ForEachAsync` (same pattern as sync adapter but calling `IEnvironmentEvaluator.EvaluateAsync`), `ConcurrentBag` error accumulation, lock-wrapped callback
+- [X] T017 [US4] Wire `FromEnvironment(IEnvironmentEvaluator, EvaluationOptions)` in `src/NeatSharp/Evaluation/EvaluationStrategy.cs` to return `ParallelEnvironmentAdapter` when `MaxDegreeOfParallelism != 1`
 
 **Checkpoint**: All three parallel adapters (sync, async, environment) fully functional and tested.
 
@@ -134,11 +134,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T018 [US5] Add integration test to `tests/NeatSharp.Tests/Evaluation/EvaluationStrategyTests.cs` verifying that `EvaluationStrategyBatchAdapter` delegates to a parallel `IEvaluationStrategy` when constructed with parallel options, and genomes evaluate correctly
+- [X] T018 [US5] Add integration test to `tests/NeatSharp.Tests/Evaluation/EvaluationStrategyTests.cs` verifying that `EvaluationStrategyBatchAdapter` delegates to a parallel `IEvaluationStrategy` when constructed with parallel options, and genomes evaluate correctly
 
 ### Implementation for User Story 5
 
-- [ ] T019 [US5] Verify no code changes needed — `EvaluationStrategyBatchAdapter` already delegates to `IEvaluationStrategy.EvaluatePopulationAsync()`. Confirm by running the integration test from T018. If DI registration in `AddNeatSharp()` needs to flow `EvaluationOptions` to the strategy factory, update `src/NeatSharp/Configuration/ServiceCollectionExtensions.cs` (or equivalent DI wiring)
+- [X] T019 [US5] Verify no code changes needed — `EvaluationStrategyBatchAdapter` already delegates to `IEvaluationStrategy.EvaluatePopulationAsync()`. Confirm by running the integration test from T018. If DI registration in `AddNeatSharp()` needs to flow `EvaluationOptions` to the strategy factory, update `src/NeatSharp/Configuration/ServiceCollectionExtensions.cs` (or equivalent DI wiring)
 
 **Checkpoint**: Hybrid evaluator CPU batch parallelized. End-to-end flow validated.
 
@@ -148,11 +148,11 @@
 
 **Purpose**: Documentation, code quality, and final validation
 
-- [ ] T020 [P] Add XML doc comments to all three parallel adapter classes and factory overloads documenting thread-safety requirements for user-provided fitness functions (FR-013) in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` and `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
-- [ ] T021 [P] Run `dotnet format NeatSharp.sln --verify-no-changes --severity warn` and fix any formatting issues
-- [ ] T022 Run full test suite `dotnet test NeatSharp.sln --filter "Category!=GPU"` — all existing + new tests must pass
-- [ ] T023 Add a compilable smoke test to `tests/NeatSharp.Tests/Evaluation/` that exercises the quickstart.md code examples against the implemented API — verifies factory overloads, option configuration, and parallel evaluation signatures compile and run correctly
-- [ ] T024 [P] Add a `ParallelEvaluationBenchmark` class to `benchmarks/NeatSharp.Benchmarks/` comparing parallel vs. sequential sync evaluation for a CPU-bound fitness function with population sizes of 100 and 1000 genomes. Run and record results to validate SC-001 (wall-clock time ≤ 2× sequential_time / N). Constitution Principle III: benchmark evidence required for performance-sensitive changes.
+- [X] T020 [P] Add XML doc comments to all three parallel adapter classes and factory overloads documenting thread-safety requirements for user-provided fitness functions (FR-013) in `src/NeatSharp/Evaluation/EvaluationStrategy.Parallel.cs` and `src/NeatSharp/Evaluation/EvaluationStrategy.cs`
+- [X] T021 [P] Run `dotnet format NeatSharp.sln --verify-no-changes --severity warn` and fix any formatting issues
+- [X] T022 Run full test suite `dotnet test NeatSharp.sln --filter "Category!=GPU"` — all existing + new tests must pass
+- [X] T023 Add a compilable smoke test to `tests/NeatSharp.Tests/Evaluation/` that exercises the quickstart.md code examples against the implemented API — verifies factory overloads, option configuration, and parallel evaluation signatures compile and run correctly
+- [X] T024 [P] Add a `ParallelEvaluationBenchmark` class to `benchmarks/NeatSharp.Benchmarks/` comparing parallel vs. sequential sync evaluation for a CPU-bound fitness function with population sizes of 100 and 1000 genomes. Run and record results to validate SC-001 (wall-clock time ≤ 2× sequential_time / N). Constitution Principle III: benchmark evidence required for performance-sensitive changes.
 
 ---
 

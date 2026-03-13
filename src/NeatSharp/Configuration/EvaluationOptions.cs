@@ -19,4 +19,12 @@ public class EvaluationOptions
     /// Must be finite and non-negative. Default is <c>0.0</c>.
     /// </summary>
     public double ErrorFitnessValue { get; set; }
+
+    /// <summary>
+    /// Maximum number of concurrent genome evaluations.
+    /// <c>null</c> (default) uses all available processor cores.
+    /// <c>1</c> reverts to sequential evaluation.
+    /// Must be <c>null</c> or >= 1.
+    /// </summary>
+    public int? MaxDegreeOfParallelism { get; set; }
 }

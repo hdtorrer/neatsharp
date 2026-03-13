@@ -108,14 +108,14 @@ public class BackwardCompatibilityTests
 
         // Assert — Configuration Hash
         checkpoint.ConfigurationHash.Should().Be(
-            "b4bfb68dfce7a97cd0b19a2c1cb9da3f02e2c0462bd5eeb50a3e7d9773deb551");
+            "b29634655ca9809250b7f7b84ad408778317fe1d2d95e78481bbc63a4773a8a2");
 
         // Assert — Metadata
         checkpoint.Metadata.SchemaVersion.Should().Be("1.0.0");
         checkpoint.Metadata.LibraryVersion.Should().Be("1.0.0");
         checkpoint.Metadata.Seed.Should().Be(42);
         checkpoint.Metadata.ConfigurationHash.Should().Be(
-            "b4bfb68dfce7a97cd0b19a2c1cb9da3f02e2c0462bd5eeb50a3e7d9773deb551");
+            "b29634655ca9809250b7f7b84ad408778317fe1d2d95e78481bbc63a4773a8a2");
         checkpoint.Metadata.CreatedAtUtc.Should().Be("2026-02-15T12:00:00Z");
         checkpoint.Metadata.Environment.OsDescription.Should().Be("Windows 10");
         checkpoint.Metadata.Environment.RuntimeVersion.Should().Be(".NET 8.0.0");

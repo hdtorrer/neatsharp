@@ -1,3 +1,4 @@
+using NeatSharp.Configuration;
 using NeatSharp.Genetics;
 
 namespace NeatSharp.Evaluation;
@@ -6,7 +7,7 @@ namespace NeatSharp.Evaluation;
 /// Factory methods for creating <see cref="IEvaluationStrategy"/> instances
 /// from user-facing evaluation patterns.
 /// </summary>
-public static class EvaluationStrategy
+public static partial class EvaluationStrategy
 {
     /// <summary>
     /// Creates a strategy from a synchronous fitness function.
@@ -71,6 +72,117 @@ public static class EvaluationStrategy
     {
         ArgumentNullException.ThrowIfNull(evaluator);
         return new BatchAdapter(evaluator);
+    }
+
+    /// <summary>
+    /// Creates a strategy from a synchronous fitness function with evaluation options.
+    /// When <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is <c>1</c>, returns
+    /// a sequential adapter; when <c>null</c> or greater than <c>1</c>, returns a parallel adapter.
+    /// </summary>
+    /// <param name="fitnessFunction">
+    /// A function that takes a genome and returns its fitness score.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <returns>An evaluation strategy that applies the function to each genome.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="fitnessFunction"/> or <paramref name="options"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is less than or equal to zero.
+    /// </exception>
+    public static IEvaluationStrategy FromFunction(Func<IGenome, double> fitnessFunction, EvaluationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(fitnessFunction);
+        ArgumentNullException.ThrowIfNull(options);
+        ValidateMaxDegreeOfParallelism(options.MaxDegreeOfParallelism);
+
+        if (options.MaxDegreeOfParallelism == 1)
+        {
+            return new SyncFunctionAdapter(fitnessFunction);
+        }
+
+        return new ParallelSyncFunctionAdapter(fitnessFunction, options);
+    }
+
+    /// <summary>
+    /// Creates a strategy from an asynchronous fitness function with evaluation options.
+    /// When <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is <c>1</c>, returns
+    /// a sequential adapter; when <c>null</c> or greater than <c>1</c>, returns a parallel adapter.
+    /// </summary>
+    /// <param name="fitnessFunction">
+    /// An async function that takes a genome and cancellation token and returns its fitness score.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <returns>An evaluation strategy that applies the function to each genome.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="fitnessFunction"/> or <paramref name="options"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is less than or equal to zero.
+    /// </exception>
+    public static IEvaluationStrategy FromFunction(
+        Func<IGenome, CancellationToken, Task<double>> fitnessFunction,
+        EvaluationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(fitnessFunction);
+        ArgumentNullException.ThrowIfNull(options);
+        ValidateMaxDegreeOfParallelism(options.MaxDegreeOfParallelism);
+
+        if (options.MaxDegreeOfParallelism == 1)
+        {
+            return new AsyncFunctionAdapter(fitnessFunction);
+        }
+
+        return new ParallelAsyncFunctionAdapter(fitnessFunction, options);
+    }
+
+    /// <summary>
+    /// Creates a strategy from an <see cref="IEnvironmentEvaluator"/> with evaluation options.
+    /// When <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is <c>1</c>, returns
+    /// a sequential adapter; when <c>null</c> or greater than <c>1</c>, returns a parallel adapter.
+    /// </summary>
+    /// <param name="evaluator">The environment evaluator.
+    /// Must be thread-safe when <paramref name="options"/> specifies parallel evaluation.
+    /// </param>
+    /// <param name="options">Evaluation options controlling parallelism and error handling.</param>
+    /// <returns>An evaluation strategy that delegates to the environment evaluator.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="evaluator"/> or <paramref name="options"/> is null.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <see cref="EvaluationOptions.MaxDegreeOfParallelism"/> is less than or equal to zero.
+    /// </exception>
+    public static IEvaluationStrategy FromEnvironment(IEnvironmentEvaluator evaluator, EvaluationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(evaluator);
+        ArgumentNullException.ThrowIfNull(options);
+        ValidateMaxDegreeOfParallelism(options.MaxDegreeOfParallelism);
+
+        if (options.MaxDegreeOfParallelism == 1)
+        {
+            return new EnvironmentAdapter(evaluator);
+        }
+
+        return new ParallelEnvironmentAdapter(evaluator, options);
+    }
+
+    /// <summary>
+    /// Validates that <paramref name="maxDegreeOfParallelism"/> is <c>null</c> or at least <c>1</c>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="maxDegreeOfParallelism"/> is less than or equal to zero.
+    /// </exception>
+    private static void ValidateMaxDegreeOfParallelism(int? maxDegreeOfParallelism)
+    {
+        if (maxDegreeOfParallelism is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxDegreeOfParallelism),
+                maxDegreeOfParallelism,
+                "MaxDegreeOfParallelism must be null or >= 1.");
+        }
     }
 
     private sealed class SyncFunctionAdapter(Func<IGenome, double> fitnessFunction) : IEvaluationStrategy
