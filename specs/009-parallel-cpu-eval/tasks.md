@@ -80,9 +80,9 @@
 
 ---
 
-## Phase 5: User Story 3 — Parallel Async Evaluation (Priority: P2)
+## Phase 5: User Story 3 — Parallel Async Evaluation with Error Resilience (Priority: P2)
 
-**Goal**: Async fitness functions evaluate in parallel using `SemaphoreSlim`-bounded `Task.WhenAll`, with the same error-handling contract as sequential
+**Goal**: Async fitness functions evaluate in parallel using `SemaphoreSlim`-bounded `Task.WhenAll`, with the same error-handling contract as sequential. This phase is the primary vehicle for validating the error resilience contract (spec US3), though error resilience is a cross-cutting concern tested across all adapters.
 
 **Independent Test**: Provide an async fitness function that throws for specific genomes, run in parallel, verify remaining genomes get correct scores and aggregated error reported
 

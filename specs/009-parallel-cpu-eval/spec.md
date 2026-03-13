@@ -51,7 +51,7 @@ A library consumer wants to control how many CPU cores are used for evaluation s
 
 ### User Story 3 - Parallel Evaluation with Error Resilience (Priority: P2)
 
-A library consumer using parallel evaluation expects the same error-handling behavior as sequential evaluation: per-genome failures are accumulated and reported without aborting evaluation of other genomes.
+A library consumer using parallel evaluation — including asynchronous fitness functions — expects the same error-handling behavior as sequential evaluation: per-genome failures are accumulated and reported without aborting evaluation of other genomes. Async fitness functions are the primary delivery vehicle for this story, as they introduce additional concurrency concerns (semaphore-bounded `Task.WhenAll`) beyond the sync path.
 
 **Why this priority**: Error resilience is already a core contract of the sequential path. Parallel evaluation must preserve this guarantee or it would be a regression.
 
@@ -61,6 +61,8 @@ A library consumer using parallel evaluation expects the same error-handling beh
 
 1. **Given** a population of 100 genomes where 5 genomes throw exceptions during evaluation, **When** parallel evaluation completes, **Then** the remaining 95 genomes receive correct fitness scores and an aggregated error containing all 5 failures is reported.
 2. **Given** parallel evaluation and the error mode set to "assign default fitness", **When** individual genomes fail, **Then** failed genomes receive the configured default fitness value and training continues.
+3. **Given** a population of 500 genomes and an asynchronous fitness function, **When** parallel evaluation is enabled, **Then** async evaluations run concurrently across available cores and all genomes receive correct fitness scores.
+4. **Given** an asynchronous fitness function and `MaxDegreeOfParallelism` set to 4, **When** parallel evaluation runs, **Then** at most 4 async evaluations execute concurrently.
 
 ---
 
@@ -128,7 +130,7 @@ A library consumer using the hybrid (CPU + GPU) evaluator wants the CPU portion 
 
 ### Measurable Outcomes
 
-- **SC-001**: Population evaluation on a machine with N cores completes in no more than 2x the theoretical ideal speedup (wall-clock time <= 2 * sequential_time / N) for CPU-bound fitness functions with populations of 100+ genomes.
+- **SC-001**: Population evaluation on a machine with N cores completes in no more than 2× the ideal wall-clock time (i.e., `parallel_time ≤ 2 × sequential_time / N`) for CPU-bound fitness functions with populations of 100+ genomes.
 - **SC-002**: All existing tests pass without modification when parallel evaluation is enabled, confirming backward-compatible behavior.
 - **SC-003**: For deterministic fitness functions, parallel and sequential evaluation produce identical fitness scores for every genome in the population.
 - **SC-004**: When a configurable fraction of genomes fail during parallel evaluation, the remaining genomes still receive correct fitness scores and training continues (matching sequential error-handling behavior).
