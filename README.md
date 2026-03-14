@@ -1,6 +1,6 @@
 # NeatSharp
 
-A GPU-accelerated NEAT (NeuroEvolution of Augmenting Topologies) library for .NET.
+A GPU-accelerated NEAT (NeuroEvolution of Augmenting Topologies) library for .NET, developed and maintained entirely using AI coding agents ([Claude Code](https://docs.anthropic.com/en/docs/claude-code) + [Speckit](docs/ai-development-workflow.md)).
 
 ## Features
 
@@ -131,6 +131,7 @@ Detailed guides are available in the [`docs/`](docs/) directory:
 - [GPU Setup](docs/gpu-setup.md) -- CUDA prerequisites, configuration, and performance tips
 - [Troubleshooting](docs/troubleshooting.md) -- Step-by-step resolutions for common issues
 - [Offline Usage](docs/offline-usage.md) -- Running NeatSharp without network connectivity
+- [AI Development Workflow](docs/ai-development-workflow.md) -- How this project is built and maintained using Claude Code and Speckit
 
 ## Troubleshooting
 

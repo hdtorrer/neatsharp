@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to NeatSharp! This guide will help you get set up and submit high-quality contributions.
 
+> **Note:** NeatSharp is developed and maintained using AI coding agents. All features follow a structured specification-to-implementation pipeline powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and Speckit slash commands. See [AI Development Workflow](docs/ai-development-workflow.md) for the full process.
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
