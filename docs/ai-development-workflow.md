@@ -46,28 +46,24 @@ Additional gates cover DI practices (constructor injection, composition root) an
 
 ## Feature Development Pipeline
 
-Each feature follows this 10-step pipeline, executed entirely through Claude Code slash commands:
+Each feature follows this 14-step pipeline, executed entirely through Claude Code slash commands:
 
 ```
-/speckit.specify
-     |
-/speckit.clarify  (optional, highly recommended)
-     |
-/speckit.plan
-     |
-/speckit.tasks
-     |
-/speckit.analyze  (optional, highly recommended -- run twice)
-     |                \__ decision point: proceed or restart if gaps are too large
-/speckit.implement.byphases
-     |
-/speckit.checklist.comp
-     |
-/review-interactive  (completeness review against checklist)
-     |
-/review-interactive  (code quality review)
-     |
-commit, push, PR, merge
+ 1. /speckit.specify
+ 2. /speckit.clarify              (optional, highly recommended)
+ 3. /speckit.plan
+ 4. /speckit.tasks
+ 5. /speckit.analyze x2           (decision point: proceed or restart)
+    ── new conversation ──
+ 6. /speckit.implement.byphases
+ 7. build + test + format gate
+ 8. docs generation               (conditional: when feature has user-facing surface)
+ 9. /speckit.checklist.comp
+10. /review-interactive           (completeness review against checklist)
+11. /review-interactive           (code quality review)
+12. build + test + format gate    (re-validation after review fixes)
+13. benchmark comparison          (conditional: performance-sensitive features)
+14. commit, push, PR, merge
 ```
 
 ### Step 1: Specification (`/speckit.specify`)
@@ -152,6 +148,8 @@ This step catches ambiguities early that would otherwise surface during implemen
 
 **Output:** Remediated artifacts with cross-cutting consistency verified.
 
+**Start a new conversation after this step.** Steps 1-5 accumulate significant context. Since all spec artifacts are persisted to disk, step 6 reads them fresh -- a clean context window improves implementation quality.
+
 ### Step 6: Implementation (`/speckit.implement.byphases`)
 
 **Input:** Completed and validated `tasks.md` with all prerequisite artifacts.
@@ -170,7 +168,36 @@ The by-phases variant is preferred over `/speckit.implement` because it clears c
 
 **Output:** Implementation code, tests, and incremental commits.
 
-### Step 7: Completeness Checklist (`/speckit.checklist.comp`)
+### Step 7: Build, Test, and Format Gate
+
+**Input:** The implementation from step 6.
+
+**What happens:**
+```bash
+dotnet build NeatSharp.sln
+dotnet test NeatSharp.sln --filter "Category!=GPU"
+dotnet format NeatSharp.sln --verify-no-changes --severity warn
+```
+
+This gate validates the full solution as a unit before investing time in reviews. The implementation subagents run tests per-phase, but cross-phase regressions (e.g., phase 3 breaking something from phase 2) are only caught here.
+
+**If any step fails:** Fix the issue before proceeding. Do not skip this gate.
+
+### Step 8: Documentation Generation -- Conditional
+
+**Input:** The implemented feature.
+
+**Applies when:** The feature has user-facing surface (new API, new configuration options, new usage patterns).
+
+**What happens:**
+1. Generate or update the relevant guide in `docs/` for the new feature
+2. The `quickstart.md` from the planning phase serves as a starting point, but user-facing docs need more context, examples, and edge case coverage
+
+**Output:** New or updated `docs/*.md` file (e.g., `docs/parallel-evaluation.md`).
+
+**Skip when:** The feature is purely internal (refactoring, CI changes, test infrastructure).
+
+### Step 9: Completeness Checklist (`/speckit.checklist.comp`)
 
 **Input:** The implemented feature (code and tests in the working tree).
 
@@ -181,9 +208,9 @@ The by-phases variant is preferred over `/speckit.implement` because it clears c
 
 **Output:** `checklists/implementation-completeness.md` -- a detailed checklist showing which requirements are met, partially met, or missing. This checklist feeds directly into the next step.
 
-### Step 8: Completeness Review (`/review-interactive`)
+### Step 10: Completeness Review (`/review-interactive`)
 
-**Input:** The generated completeness checklist from step 7.
+**Input:** The generated completeness checklist from step 9.
 
 **What happens:**
 1. Reviews the implementation against the completeness checklist
@@ -195,7 +222,7 @@ This is a **spec-compliance review** -- it focuses on whether the implementation
 
 **Output:** Fixes for any completeness gaps, committed.
 
-### Step 9: Code Quality Review (`/review-interactive`)
+### Step 11: Code Quality Review (`/review-interactive`)
 
 **Input:** The PR or changed files.
 
@@ -209,7 +236,36 @@ This is a **code quality review** -- it focuses on bugs, performance, security, 
 
 **Output:** Review fixes applied and committed.
 
-### Step 10: Commit, Push, PR, and Merge
+### Step 12: Re-validation Gate
+
+**Input:** The codebase after review fixes from steps 10-11.
+
+**What happens:**
+```bash
+dotnet build NeatSharp.sln
+dotnet test NeatSharp.sln --filter "Category!=GPU"
+dotnet format NeatSharp.sln --verify-no-changes --severity warn
+```
+
+Review fixes (especially refactors like deduplicating code or adding new behavior to existing adapters) can introduce regressions. This gate confirms the fixes didn't break anything before the PR is created.
+
+### Step 13: Benchmark Comparison -- Conditional
+
+**Input:** The implemented feature, specifically changes to performance-critical paths.
+
+**Applies when:** The feature touches evaluation, GPU, hot paths, or data structures used in the inner loop.
+
+**What happens:**
+```bash
+dotnet run --project benchmarks/NeatSharp.Benchmarks -c Release -- --filter "*CPU*" --exporters json
+dotnet run --project tools/benchmark-compare -- --baseline benchmarks/baseline.json --current BenchmarkDotNet.Artifacts/results/*.json --threshold 10
+```
+
+**Output:** Benchmark comparison confirming no performance regressions above the configured threshold.
+
+**Skip when:** The feature doesn't touch performance-sensitive code (docs, specs, CI, configuration).
+
+### Step 14: Commit, Push, PR, and Merge
 
 The developer commits remaining changes, pushes to the remote, and creates a PR (or asks Claude Code to do it). The CI pipeline validates:
 - Code formatting (`dotnet format --verify-no-changes`)
