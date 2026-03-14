@@ -1,6 +1,6 @@
 # AI-Assisted Development Workflow
 
-NeatSharp is developed and maintained entirely using AI coding agents. Every feature -- from specification through implementation, testing, code review, and merge -- is authored by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) guided by [Speckit](https://github.com/hdtorrer/neatsharp/.claude/commands/), a structured specification-to-implementation workflow embedded as slash commands.
+NeatSharp is developed and maintained entirely using AI coding agents. Every feature -- from specification through implementation, testing, code review, and merge -- is authored by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) guided by [Speckit](https://github.com/github/spec-kit), a structured specification-to-implementation workflow embedded as slash commands.
 
 This document describes the tools, configuration, and step-by-step process used to build each feature.
 
